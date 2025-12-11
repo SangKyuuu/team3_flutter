@@ -1,6 +1,7 @@
-import 'dart:async'; // Timer 사용을 위해 추가
+import 'dart:async';
 import 'package:flutter/material.dart';
-import 'package:team3/features/home/home_screen.dart'; // HomeScreen import (경로 확인 필요)
+import 'package:google_fonts/google_fonts.dart'; // 폰트 패키지 임포트 필수
+import 'package:team3/features/home/home_screen.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,10 +15,7 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   void initState() {
     super.initState();
-
-    // 2초 뒤에 메인 화면으로 이동
     Timer(const Duration(seconds: 2), () {
-      // pushReplacement: 뒤로가기 했을 때 스플래시 화면으로 돌아오지 않도록 함
       Navigator.of(context).pushReplacement(
         MaterialPageRoute(builder: (context) => const HomeScreen()),
       );
@@ -27,30 +25,53 @@ class _SplashScreenState extends State<SplashScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.white,
+      // 배경을 완전히 흰색보다는 아주 연한 크림색이나 블루 틴트로 하면 더 부드럽습니다.
+      backgroundColor: const Color(0xFFFDFDFD),
       body: Center(
         child: Column(
           mainAxisAlignment: MainAxisAlignment.center,
           children: [
-            // 로고 이미지 (기존 코드 유지)
-            Image.asset(
-              'assets/images/logo.png',
-              width: 150,
-              height: 150,
-            ),
-            const SizedBox(height: 20),
-            const Text(
-              'OASIS',
-              style: TextStyle(
-                fontSize: 24,
-                fontWeight: FontWeight.bold,
-                color: Color(0xFF1A237E), // 로고 색상에 맞춰 조정
+            // 로고 이미지 (그림자 효과 추가로 입체감 주기)
+            Container(
+              decoration: BoxDecoration(
+                shape: BoxShape.circle,
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.blue.withOpacity(0.2),
+                    blurRadius: 20,
+                    offset: const Offset(0, 10),
+                  ),
+                ],
+              ),
+              child: Image.asset(
+                'assets/images/logo.png',
+                width: 160, // 크기 살짝 키움
+                height: 160,
               ),
             ),
-            const SizedBox(height: 10),
-            const Text(
+            const SizedBox(height: 30),
+
+            // 메인 타이틀 (귀여운 폰트 적용)
+            Text(
+              'OASIS',
+              style: GoogleFonts.fredoka( // 둥글둥글한 Fredoka 폰트
+                fontSize: 40,
+                fontWeight: FontWeight.w600,
+                // 기존 남색보다 밝고 산뜻한 '오션 블루' 또는 '민트' 계열 추천
+                color: const Color(0xFF4FC3F7),
+              ),
+            ),
+            const SizedBox(height: 12),
+
+            // 서브 타이틀
+            Text(
               'Open AI Smart Investment Service',
-              style: TextStyle(fontSize: 12, color: Colors.grey),
+              style: GoogleFonts.nunito( // 가독성 좋고 부드러운 Nunito 폰트
+                fontSize: 14,
+                fontWeight: FontWeight.w600,
+                color: const Color(0xFF90A4AE), // 너무 검지 않은 회색
+                letterSpacing: 1.2, // 자간을 넓혀서 시원하게
+              ),
             ),
           ],
         ),
