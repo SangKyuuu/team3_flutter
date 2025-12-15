@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:team3/features/auth/login_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -33,6 +34,23 @@ class _HomeScreenState extends State<HomeScreen> {
         ),
         centerTitle: true,
         elevation: 0, // 그림자 제거 (깔끔한 느낌)
+        actions: [
+          TextButton(
+            onPressed: () {
+              Navigator.push(context,
+              MaterialPageRoute(builder: (_)=> const LoginScreen(),
+              ),
+            );
+          },
+            child: const Text(
+              '로그인',
+              style: TextStyle(
+                color: Colors.blue,
+                fontWeight: FontWeight.w600,
+              ),
+            ),
+          ),
+        ],
       ),
       body: _pages[_selectedIndex],
       bottomNavigationBar: BottomNavigationBar(
