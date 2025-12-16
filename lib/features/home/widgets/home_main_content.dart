@@ -6,7 +6,7 @@ import 'portfolio_status_card.dart';
 import 'search_bar_card.dart';
 import 'category_tabs.dart';
 import 'fund_card.dart';
-import 'chat_fab.dart';
+import 'common_widgets.dart';
 
 class HomeMainContent extends StatefulWidget {
   const HomeMainContent({super.key});

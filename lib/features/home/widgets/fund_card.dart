@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
-import 'crown_icon.dart';
+import 'common_widgets.dart';
 
 class FundCard extends StatelessWidget {
   const FundCard({
