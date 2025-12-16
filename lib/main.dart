@@ -14,7 +14,8 @@ class MyApp extends StatelessWidget {
       title: 'Team3 Project',
       theme: ThemeData(
         useMaterial3: true,
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blue),
+        colorScheme: ColorScheme.fromSeed(seedColor: const Color(0xFF4B8EC6)),
+        scaffoldBackgroundColor: Colors.white,
       ),
       home: const SplashScreen(), // 시작은 무조건 스플래시
     );

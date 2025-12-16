@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
-import 'package:team3/features/auth/login_screen.dart';
+import 'constants/app_colors.dart';
+import 'widgets/common_widgets.dart';
+import 'widgets/home_main_content.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -11,9 +13,8 @@ class HomeScreen extends StatefulWidget {
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
 
-  // 탭별 화면을 나중에 이곳에 추가하면 됩니다.
-  final List<Widget> _pages = [
-    const Center(child: Text('메인 홈 (대시보드)')),
+  late final List<Widget> _pages = [
+    const HomeMainContent(),
     const Center(child: Text('투자 내역')),
     const Center(child: Text('설정')),
   ];
@@ -28,51 +29,39 @@ class _HomeScreenState extends State<HomeScreen> {
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
+        backgroundColor: Colors.white,
+        elevation: 2,
+        scrolledUnderElevation: 2,
+        surfaceTintColor: Colors.transparent,
+        automaticallyImplyLeading: false,
+        centerTitle: true,
+        titleSpacing: 0,
+        toolbarHeight: 56,
         title: const Text(
           'OASIS',
-          style: TextStyle(fontWeight: FontWeight.bold),
+          style: TextStyle(
+            fontWeight: FontWeight.w800,
+            color: AppColors.primaryColor,
+            letterSpacing: 0.5,
+          ),
         ),
-        centerTitle: true,
-        elevation: 0, // 그림자 제거 (깔끔한 느낌)
+        leadingWidth: 56,
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
+          child: AppIconButton(imagePath: 'assets/images/user.png'),
+        ),
         actions: [
-          TextButton(
-            onPressed: () {
-              Navigator.push(context,
-              MaterialPageRoute(builder: (_)=> const LoginScreen(),
-              ),
-            );
-          },
-            child: const Text(
-              '로그인',
-              style: TextStyle(
-                color: Colors.blue,
-                fontWeight: FontWeight.w600,
-              ),
-            ),
+          Padding(
+            padding: const EdgeInsets.symmetric(horizontal: 4, vertical: 8),
+            child: AppIconButton(imagePath: 'assets/images/bell.png'),
+          ),
+          Padding(
+            padding: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
+            child: AppIconButton(imagePath: 'assets/images/text-align-justify.png'),
           ),
         ],
       ),
       body: _pages[_selectedIndex],
-      bottomNavigationBar: BottomNavigationBar(
-        currentIndex: _selectedIndex,
-        onTap: _onItemTapped,
-        selectedItemColor: Colors.blue, // 프로젝트 메인 컬러로 변경 가능
-        unselectedItemColor: Colors.grey,
-        items: const [
-          BottomNavigationBarItem(
-            icon: Icon(Icons.home),
-            label: '홈',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.pie_chart),
-            label: '투자',
-          ),
-          BottomNavigationBarItem(
-            icon: Icon(Icons.person),
-            label: '마이페이지',
-          ),
-        ],
-      ),
     );
   }
 }
