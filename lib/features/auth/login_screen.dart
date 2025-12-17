@@ -1,10 +1,53 @@
 import 'package:flutter/material.dart';
 import 'package:team3/features/auth/signup_screen.dart';
 import 'package:team3/features/home/home_screen.dart';
+import 'package:team3/data/service/auth_api.dart';
+import 'package:team3/data/service/token_storage.dart';
 
-
-class LoginScreen extends StatelessWidget {
+class LoginScreen extends StatefulWidget {
   const LoginScreen({super.key});
+
+  @override
+  State<LoginScreen> createState() => _LoginScreenState();
+}
+
+class _LoginScreenState extends State<LoginScreen> {
+  final _idController = TextEditingController();
+  final _pwController = TextEditingController();
+
+  bool _loading = false;
+
+  Future<void> _login() async {
+    setState(() => _loading = true);
+
+    try {
+      final token = await AuthApi.login(
+        _idController.text,
+        _pwController.text,
+      );
+      await TokenStorage.saveToken(token);
+
+      if (!mounted) return;
+      Navigator.pushReplacement(
+        context,
+        MaterialPageRoute(builder: (_) => const HomeScreen()),
+      );
+
+    } catch (e) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(content: Text('아이디 또는 비밀번호가 올바르지 않습니다')),
+      );
+    } finally {
+      setState(() => _loading = false);
+    }
+  }
+
+  @override
+  void dispose() {
+    _idController.dispose();
+    _pwController.dispose();
+    super.dispose();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -20,9 +63,9 @@ class LoginScreen extends StatelessWidget {
           children: [
             const SizedBox(height: 40),
 
-            // 아이디
-            const TextField(
-              decoration: InputDecoration(
+            TextField(
+              controller: _idController,
+              decoration: const InputDecoration(
                 labelText: '아이디',
                 border: OutlineInputBorder(),
               ),
@@ -30,10 +73,10 @@ class LoginScreen extends StatelessWidget {
 
             const SizedBox(height: 16),
 
-            // 비밀번호
-            const TextField(
+            TextField(
+              controller: _pwController,
               obscureText: true,
-              decoration: InputDecoration(
+              decoration: const InputDecoration(
                 labelText: '비밀번호',
                 border: OutlineInputBorder(),
               ),
@@ -41,23 +84,21 @@ class LoginScreen extends StatelessWidget {
 
             const SizedBox(height: 32),
 
-            // 로그인 버튼
+            ElevatedButton(
+              onPressed: _loading ? null : _login,
+              child: _loading
+                  ? const CircularProgressIndicator()
+                  : const Text('로그인'),
+            ),
+
             ElevatedButton(
               onPressed: () {
-                Navigator.push(context,
-                    MaterialPageRoute(builder: (_) => const HomeScreen()
-                    ), // 이거 나중에 인증 유무가냐 안가냐로바꿀 예정
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(builder: (_) => const SignUpScreen()),
                 );
               },
-              child: const Text('로그인'),
-            ),
-            ElevatedButton(onPressed: (){
-              Navigator.push(context,
-                  MaterialPageRoute(builder: (_) => const SignUpScreen()
-                  ),
-              );
-            },
-                child: const Text('회원가입')
+              child: const Text('회원가입'),
             ),
           ],
         ),
