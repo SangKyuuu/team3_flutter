@@ -231,7 +231,7 @@ class LeftColumn extends StatelessWidget {
                 FundCard(
                   title: fund.title,
                   subtitle: fund.subtitle,
-                  rankLabel: fund.rankLabel,
+                  rankLabel: (selectedCategory == 2 || selectedCategory == 3) ? '' : fund.rankLabel,
                   badge: fund.badge,
                   badge2: fund.badge2,
                   yieldText: fund.yieldText,

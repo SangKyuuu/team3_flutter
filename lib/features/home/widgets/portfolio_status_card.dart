@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import '../fund_management_screen.dart';
 
 class PortfolioStatusCard extends StatelessWidget {
   const PortfolioStatusCard({super.key});
@@ -11,15 +12,32 @@ class PortfolioStatusCard extends StatelessWidget {
       decoration: BoxDecoration(
         color: Colors.grey.shade100,
         borderRadius: BorderRadius.circular(18),
-        border: Border.all(color: Colors.grey.shade300),
+        border: Border.all(color: Colors.grey.shade100),
       ),
-      child: const Row(
+      child: Row(
+        mainAxisAlignment: MainAxisAlignment.spaceEvenly,
         children: [
-          StatusItem(label: '보유', value: '1'),
-          VerticalDividerThin(),
-          StatusItem(label: '관심', value: '2'),
-          VerticalDividerThin(),
-          InvestTendency(),
+          Expanded(
+            child: StatusItem(
+              label: '보유',
+              value: '1',
+              onTap: () {
+                Navigator.of(context).push(
+                  MaterialPageRoute(
+                    builder: (context) => const FundManagementScreen(),
+                  ),
+                );
+              },
+            ),
+          ),
+          const VerticalDividerThin(),
+          const Expanded(
+            child: StatusItem(label: '관심', value: '2'),
+          ),
+          const VerticalDividerThin(),
+          const Expanded(
+            child: InvestTendency(),
+          ),
         ],
       ),
     );
@@ -27,37 +45,56 @@ class PortfolioStatusCard extends StatelessWidget {
 }
 
 class StatusItem extends StatelessWidget {
-  const StatusItem({super.key, required this.label, required this.value});
+  const StatusItem({
+    super.key,
+    required this.label,
+    required this.value,
+    this.onTap,
+  });
 
   final String label;
   final String value;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          Text(
-            label,
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              color: Colors.grey.shade800,
-            ),
+    final widget = Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        Text(
+          label,
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+            color: Colors.grey.shade800,
+            height: 1.0,
           ),
-          const SizedBox(width: 20),
-          Text(
+        ),
+        Padding(
+          padding: const EdgeInsets.only(left: 22),
+          child: Text(
             value,
             style: const TextStyle(
-              fontWeight: FontWeight.w800,
-              fontSize: 16,
+              fontWeight: FontWeight.w700,
+              fontSize: 18,
               color: AppColors.primaryColor,
+              height: 1.0,
             ),
           ),
-        ],
-      ),
+        ),
+      ],
     );
+
+    if (onTap != null) {
+      return InkWell(
+        onTap: onTap,
+        borderRadius: BorderRadius.circular(8),
+        child: widget,
+      );
+    }
+
+    return widget;
   }
 }
 
@@ -66,33 +103,33 @@ class InvestTendency extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return Expanded(
-      child: Row(
-        mainAxisAlignment: MainAxisAlignment.center,
-        children: [
-          const Text(
-            '투자성향',
-            style: TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 16,
-              color: Colors.black87,
-            ),
+    return Row(
+      mainAxisAlignment: MainAxisAlignment.center,
+      crossAxisAlignment: CrossAxisAlignment.center,
+      children: [
+        const Text(
+          '투자성향',
+          style: TextStyle(
+            fontWeight: FontWeight.w700,
+            fontSize: 16,
+            color: Colors.black87,
+            height: 1.0,
           ),
-          const SizedBox(width: 6),
-          ColorFiltered(
-            colorFilter: ColorFilter.mode(AppColors.primaryColor, BlendMode.srcIn),
-            child: Image.asset(
-              'assets/images/file-chart-column-increasing.png',
-              width: 20,
-              height: 20,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Icon(Icons.insert_chart_outlined, color: AppColors.primaryColor, size: 20);
-              },
-            ),
+        ),
+        const SizedBox(width: 8),
+        ColorFiltered(
+          colorFilter: ColorFilter.mode(AppColors.primaryColor, BlendMode.srcIn),
+          child: Image.asset(
+            'assets/images/file-chart-column-increasing.png',
+            width: 20,
+            height: 20,
+            fit: BoxFit.contain,
+            errorBuilder: (context, error, stackTrace) {
+              return Icon(Icons.insert_chart_outlined, color: AppColors.primaryColor, size: 20);
+            },
           ),
-        ],
-      ),
+        ),
+      ],
     );
   }
 }
@@ -106,7 +143,7 @@ class VerticalDividerThin extends StatelessWidget {
       width: 1,
       height: 28,
       color: Colors.grey.shade300,
-      margin: const EdgeInsets.symmetric(horizontal: 12),
+      margin: const EdgeInsets.symmetric(horizontal: 16),
     );
   }
 }
