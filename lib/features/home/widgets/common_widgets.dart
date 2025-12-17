@@ -3,9 +3,14 @@ import '../constants/app_colors.dart';
 
 /// 앱바 아이콘 버튼
 class AppIconButton extends StatelessWidget {
-  const AppIconButton({super.key, required this.imagePath});
+  const AppIconButton({
+    super.key,
+    required this.imagePath,
+    this.onTap,
+  });
 
   final String imagePath;
+  final VoidCallback? onTap;
 
   @override
   Widget build(BuildContext context) {
@@ -20,7 +25,7 @@ class AppIconButton extends StatelessWidget {
         color: Colors.transparent,
         child: InkWell(
           borderRadius: BorderRadius.circular(8),
-          onTap: () {},
+          onTap: onTap ?? () {},
           child: Center(
             child: Image.asset(
               imagePath,

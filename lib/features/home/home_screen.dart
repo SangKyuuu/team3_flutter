@@ -1,7 +1,9 @@
 import 'package:flutter/material.dart';
+import 'package:google_fonts/google_fonts.dart';
 import 'constants/app_colors.dart';
 import 'widgets/common_widgets.dart';
 import 'widgets/home_main_content.dart';
+import 'menu_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -12,6 +14,7 @@ class HomeScreen extends StatefulWidget {
 
 class _HomeScreenState extends State<HomeScreen> {
   int _selectedIndex = 0;
+  final GlobalKey<ScaffoldState> _scaffoldKey = GlobalKey<ScaffoldState>();
 
   late final List<Widget> _pages = [
     const HomeMainContent(),
@@ -28,6 +31,7 @@ class _HomeScreenState extends State<HomeScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      key: _scaffoldKey,
       appBar: AppBar(
         backgroundColor: Colors.white,
         elevation: 2,
@@ -37,12 +41,12 @@ class _HomeScreenState extends State<HomeScreen> {
         centerTitle: true,
         titleSpacing: 0,
         toolbarHeight: 56,
-        title: const Text(
+        title: Text(
           'OASIS',
-          style: TextStyle(
-            fontWeight: FontWeight.w800,
-            color: AppColors.primaryColor,
-            letterSpacing: 0.5,
+          style: GoogleFonts.fredoka(
+            fontSize: 28,
+            fontWeight: FontWeight.w600,
+            color: const Color(0xFF4FC3F7),
           ),
         ),
         leadingWidth: 56,
@@ -57,11 +61,15 @@ class _HomeScreenState extends State<HomeScreen> {
           ),
           Padding(
             padding: const EdgeInsets.only(right: 12, top: 8, bottom: 8),
-            child: AppIconButton(imagePath: 'assets/images/text-align-justify.png'),
+            child: AppIconButton(
+              imagePath: 'assets/images/text-align-justify.png',
+              onTap: () => _scaffoldKey.currentState?.openEndDrawer(),
+            ),
           ),
         ],
       ),
       body: _pages[_selectedIndex],
+      endDrawer: const MenuScreen(),
     );
   }
 }

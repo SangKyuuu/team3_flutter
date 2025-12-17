@@ -14,7 +14,7 @@ class SearchBarCard extends StatelessWidget {
           decoration: BoxDecoration(
             color: Colors.white,
             borderRadius: BorderRadius.circular(20),
-            border: Border.all(color: AppColors.primaryColor, width: 1.6),
+            border: Border.all(color: AppColors.primaryColor, width: 1.2),
           ),
           child: Row(
             children: [
@@ -28,7 +28,13 @@ class SearchBarCard extends StatelessWidget {
                   ),
                 ),
               ),
-              Icon(Icons.search, size: 32, color: AppColors.primaryColor),
+              SizedBox(
+                width: 32,
+                height: 32,
+                child: CustomPaint(
+                  painter: SearchIconPainter(color: AppColors.primaryColor),
+                ),
+              ),
             ],
           ),
         ),
@@ -63,5 +69,45 @@ class SearchBarCard extends StatelessWidget {
       ],
     );
   }
+}
+
+class SearchIconPainter extends CustomPainter {
+  SearchIconPainter({required this.color});
+
+  final Color color;
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final paint = Paint()
+      ..color = color
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 2
+      ..strokeCap = StrokeCap.round
+      ..strokeJoin = StrokeJoin.round;
+
+    // SVG viewBox는 0 0 24 24이므로 스케일 계산
+    final scale = size.width / 24;
+    final offsetX = 0.0;
+    final offsetY = 0.0;
+
+    // 원 그리기 (cx="11" cy="11" r="8")
+    canvas.drawCircle(
+      Offset(11 * scale + offsetX, 11 * scale + offsetY),
+      8 * scale,
+      paint,
+    );
+
+    // 선 그리기 (m21 21-4.34-4.34)
+    final path = Path();
+    path.moveTo(21 * scale + offsetX, 21 * scale + offsetY);
+    path.lineTo(
+      (21 - 4.34) * scale + offsetX,
+      (21 - 4.34) * scale + offsetY,
+    );
+    canvas.drawPath(path, paint);
+  }
+
+  @override
+  bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
 
