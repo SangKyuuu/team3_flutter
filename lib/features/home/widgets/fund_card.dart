@@ -1,6 +1,10 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import 'common_widgets.dart';
+import '../../fund_detail/fund_detail_screen.dart';
+import '../../subscription/fund_subscription_screen.dart';
+import '../../investment_propensity/investment_propensity_screen.dart';
+import '../../terms_agreement/terms_agreement_screen.dart';
 
 class FundCard extends StatelessWidget {
   const FundCard({
@@ -109,23 +113,44 @@ class FundCard extends StatelessWidget {
             ],
           ),
           const SizedBox(height: 8),
-          Text(
-            title,
-            style: const TextStyle(
-              fontWeight: FontWeight.w700,
-              fontSize: 15,
+          // 상품명 클릭 시 상세 화면으로 이동
+          GestureDetector(
+            onTap: () {
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => FundDetailScreen(
+                    title: title,
+                    subtitle: subtitle,
+                    badge: badge,
+                    yieldText: yieldText,
+                  ),
+                ),
+              );
+            },
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  title,
+                  style: const TextStyle(
+                    fontWeight: FontWeight.w700,
+                    fontSize: 15,
+                  ),
+                ),
+                if (subtitle != null) ...[
+                  const SizedBox(height: 4),
+                  Text(
+                    subtitle!,
+                    style: TextStyle(
+                      color: Colors.grey.shade600,
+                      fontSize: 12,
+                    ),
+                  ),
+                ],
+              ],
             ),
           ),
-          if (subtitle != null) ...[
-            const SizedBox(height: 4),
-            Text(
-              subtitle!,
-              style: TextStyle(
-                color: Colors.grey.shade600,
-                fontSize: 12,
-              ),
-            ),
-          ],
           const SizedBox(height: 10),
           Column(
             crossAxisAlignment: CrossAxisAlignment.start,
@@ -151,12 +176,53 @@ class FundCard extends StatelessWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () {},
+                  onPressed: () async {
+                    // 1단계: 투자성향 조사
+                    final propensityResult = await Navigator.push<String>(
+                      context,
+                      MaterialPageRoute(
+                        builder: (context) => InvestmentPropensityScreen(
+                          fundTitle: title,
+                          badge: badge,
+                          yieldText: yieldText,
+                        ),
+                      ),
+                    );
+                    
+                    // 투자성향 조사 완료 후 약관 동의 화면으로 이동
+                    if (propensityResult != null && context.mounted) {
+                      // 2단계: 약관 동의
+                      final termsResult = await Navigator.push<bool>(
+                        context,
+                        MaterialPageRoute(
+                          builder: (context) => TermsAgreementScreen(
+                            fundTitle: title,
+                            badge: badge,
+                            yieldText: yieldText,
+                          ),
+                        ),
+                      );
+                      
+                      // 약관 동의 완료 후 펀드 가입 화면으로 이동
+                      if (termsResult == true && context.mounted) {
+                        // 3단계: 펀드 가입
+                        Navigator.push(
+                          context,
+                          MaterialPageRoute(
+                            builder: (context) => FundSubscriptionScreen(
+                              fundTitle: title,
+                              badge: badge,
+                              yieldText: yieldText,
+                            ),
+                          ),
+                        );
+                      }
+                    }
+                  },
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,
                     minimumSize: const Size(0, 0),
                     tapTargetSize: MaterialTapTargetSize.shrinkWrap,
-                    alignment: Alignment.centerRight,
                   ),
                   child: Row(
                     mainAxisSize: MainAxisSize.min,
