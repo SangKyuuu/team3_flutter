@@ -1,4 +1,6 @@
 import 'package:flutter/material.dart';
+import '../../data/service/mock_api.dart';
+import '../mock_investment/screens/mock_account_create_screen.dart';
 import 'constants/app_colors.dart';
 import 'personal_info_screen.dart';
 
@@ -201,9 +203,19 @@ class _MenuScreenState extends State<MenuScreen> {
                   child: Column(
                     crossAxisAlignment: CrossAxisAlignment.stretch,
                     children: [
-                      _buildFundCard(),
+                      // 모의투자 진입 배너를 보이게 추가
+                      _buildMockInvestmentEntry(context),
+
                       const SizedBox(height: 12),
-                      _buildSavingsCard(),
+                      Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
+                        child: Column(
+                          children: [
+                            _buildFundCard(),
+                            const SizedBox(height: 12),
+                            _buildSavingsCard(),
+                          ],
+                        ),
+                      ),
                     ],
                   ),
                 ),
@@ -406,6 +418,56 @@ class _MenuScreenState extends State<MenuScreen> {
             ),
           ),
         ],
+      ),
+    );
+  }
+
+  Widget _buildMockInvestmentEntry(BuildContext context) {
+    return GestureDetector(
+      onTap: () async {
+        // 1. 계좌가 있는지 서버에 확인 (비동기 처리)
+        bool hasAccount = await MockApi.checkHasAccount();
+
+        if (!context.mounted) return;
+
+        // 2. 결과에 따라 다른 화면으로 이동
+        if (hasAccount) {
+          Navigator.pushNamed(context, '/mock/dashboard');
+        } else {
+          Navigator.pushNamed(context, '/mock/create');
+        }
+      },
+      child: Container(
+        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+        padding: const EdgeInsets.all(20),
+        decoration: BoxDecoration(
+          color: AppColors.primaryColor.withOpacity(0.1),
+          borderRadius: BorderRadius.circular(16),
+          border: Border.all(color: AppColors.primaryColor.withOpacity(0.3)),
+        ),
+        child: Row(
+          children: [
+            const Icon(Icons.analytics_outlined, color: AppColors.primaryColor, size: 32),
+            const SizedBox(width: 16),
+            Expanded(
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: const [
+                  Text(
+                    'AI 모의투자 시작하기',
+                    style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold),
+                  ),
+                  SizedBox(height: 4),
+                  Text(
+                    '가상 자산으로 투자 실력을 쌓아보세요',
+                    style: TextStyle(fontSize: 13, color: Colors.black54),
+                  ),
+                ],
+              ),
+            ),
+            const Icon(Icons.arrow_forward_ios, size: 16, color: Colors.grey),
+          ],
+        ),
       ),
     );
   }
