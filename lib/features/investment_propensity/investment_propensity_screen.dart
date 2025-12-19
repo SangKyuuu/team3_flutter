@@ -1,5 +1,8 @@
 import 'package:flutter/material.dart';
 import '../home/constants/app_colors.dart';
+import '../subscription/widgets/password_input_dialog.dart';
+import '../subscription/services/signature_service.dart';
+import '../terms_agreement/terms_agreement_screen.dart';
 
 class InvestmentPropensityScreen extends StatefulWidget {
   final VoidCallback? onComplete;
@@ -322,10 +325,49 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
     setState(() => _currentStep = 11);
   }
 
-  void _handleResultConfirm() {
+  Future<void> _handleResultConfirm() async {
     if (widget.fundTitle != null) {
-      // 펀드 가입 화면으로 이동
-      Navigator.pop(context, _resultType);
+      // 전자서명 다이얼로그 표시
+      final password = await showPasswordInputDialog(
+        context: context,
+        title: '전자서명',
+        description: '투자성향 조사를 완료하려면\n비밀번호를 입력해주세요.',
+      );
+      
+      if (password == null || password.isEmpty) {
+        // 취소한 경우
+        return;
+      }
+      
+      // 전자서명 생성 (성향분포 조사용)
+      final signature = SignatureService.createSignature(
+        userId: 'USER_001',  // 실제로는 로그인된 사용자 ID
+        productName: '투자성향 조사',
+        investmentAmount: 0,  // 성향분포는 금액이 없으므로 0
+        password: password,
+        deviceInfo: 'Flutter App',
+      );
+      
+      // 전자서명 완료 메시지 추가
+      await _addBotMessage(
+        ChatItem.textMessage('전자서명이 완료되었어요! ✍️'),
+      );
+      
+      await Future.delayed(const Duration(milliseconds: 800));
+      
+      // 약관 동의 화면으로 이동 (pop하지 않고 push)
+      if (mounted) {
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => TermsAgreementScreen(
+              fundTitle: widget.fundTitle!,
+              badge: widget.badge!,
+              yieldText: widget.yieldText!,
+            ),
+          ),
+        );
+      }
     } else {
       Navigator.pop(context);
     }
@@ -345,27 +387,38 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0.5,
-        surfaceTintColor: Colors.transparent,
-        leading: IconButton(
-          icon: const Icon(Icons.close, color: Colors.black87, size: 24),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          '투자성향',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-            fontSize: 17,
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FB),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 0.5,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            icon: const Icon(Icons.close, color: Colors.black87, size: 24),
+            onPressed: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              }
+            },
           ),
+          title: const Text(
+            '투자성향',
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.w600,
+              fontSize: 17,
+            ),
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
       body: Column(
         children: [
           // 진행 바
@@ -382,7 +435,12 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
           Expanded(
             child: ListView.builder(
               controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
+              padding: EdgeInsets.only(
+                left: 16,
+                right: 16,
+                top: 20,
+                bottom: MediaQuery.of(context).padding.bottom + 40, // 하단 여백 추가
+              ),
               itemCount: _chatItems.length + (_isTyping ? 1 : 0),
               itemBuilder: (context, index) {
                 if (_isTyping && index == _chatItems.length) {
@@ -393,6 +451,7 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -547,6 +606,8 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
         return _buildSelectionCard(item);
       case ChatItemType.result:
         return _buildResultCard(item);
+      case ChatItemType.signature:
+        return _buildSignatureCard(item);
       default:
         return const SizedBox();
     }
@@ -777,21 +838,25 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
           ),
           const SizedBox(height: 20),
           Container(
-            width: 140,
-            height: 140,
+            width: 280,
+            height: 180,
             decoration: const BoxDecoration(
               color: Colors.white,
             ),
-            child: Image.asset(
-              style['image'] as String,
-              fit: BoxFit.contain,
-              errorBuilder: (context, error, stackTrace) {
-                return Icon(
-                  style['icon'] as IconData,
-                  size: 60,
-                  color: AppColors.primaryColor,
-                );
-              },
+            child: ClipRect(
+              child: Image.asset(
+                style['image'] as String,
+                width: 280,
+                height: 180,
+                fit: BoxFit.cover,
+                errorBuilder: (context, error, stackTrace) {
+                  return Icon(
+                    style['icon'] as IconData,
+                    size: 60,
+                    color: AppColors.primaryColor,
+                  );
+                },
+              ),
             ),
           ),
           const SizedBox(height: 20),
@@ -831,6 +896,151 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
       ),
     );
   }
+
+  Widget _buildSignatureCard(ChatItem item) {
+    final formattedDate = _formatSignatureDate(item.signedAt!);
+    
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Row(
+            children: [
+              Container(
+                width: 40,
+                height: 40,
+                decoration: BoxDecoration(
+                  color: Colors.green.shade50,
+                  shape: BoxShape.circle,
+                ),
+                child: Icon(
+                  Icons.verified,
+                  color: Colors.green.shade600,
+                  size: 22,
+                ),
+              ),
+              const SizedBox(width: 12),
+              Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text(
+                    '전자서명 완료',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w700,
+                    ),
+                  ),
+                  const SizedBox(height: 2),
+                  Text(
+                    formattedDate,
+                    style: TextStyle(
+                      fontSize: 12,
+                      color: Colors.grey.shade500,
+                    ),
+                  ),
+                ],
+              ),
+            ],
+          ),
+          const SizedBox(height: 16),
+          Container(
+            width: double.infinity,
+            padding: const EdgeInsets.all(14),
+            decoration: BoxDecoration(
+              color: Colors.grey.shade50,
+              borderRadius: BorderRadius.circular(12),
+            ),
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Row(
+                  children: [
+                    Icon(Icons.fingerprint, 
+                         color: AppColors.primaryColor, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      '서명 ID',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.signatureId!.substring(0, 8) + '...',
+                  style: const TextStyle(
+                    fontSize: 13,
+                    fontWeight: FontWeight.w600,
+                    fontFamily: 'monospace',
+                  ),
+                ),
+                const SizedBox(height: 12),
+                Row(
+                  children: [
+                    Icon(Icons.lock_outline, 
+                         color: AppColors.primaryColor, size: 18),
+                    const SizedBox(width: 8),
+                    Text(
+                      '서명 해시',
+                      style: TextStyle(
+                        fontSize: 12,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                  ],
+                ),
+                const SizedBox(height: 4),
+                Text(
+                  item.hashPreview! + '...',
+                  style: TextStyle(
+                    fontSize: 11,
+                    fontWeight: FontWeight.w500,
+                    fontFamily: 'monospace',
+                    color: Colors.grey.shade700,
+                  ),
+                ),
+              ],
+            ),
+          ),
+          const SizedBox(height: 12),
+          Row(
+            children: [
+              Icon(Icons.info_outline, color: Colors.grey.shade400, size: 14),
+              const SizedBox(width: 6),
+              Expanded(
+                child: Text(
+                  '이 전자서명은 법적 효력을 가집니다',
+                  style: TextStyle(
+                    fontSize: 11,
+                    color: Colors.grey.shade500,
+                  ),
+                ),
+              ),
+            ],
+          ),
+        ],
+      ),
+    );
+  }
+
+  String _formatSignatureDate(DateTime dt) {
+    return '${dt.year}.${dt.month.toString().padLeft(2, '0')}.${dt.day.toString().padLeft(2, '0')} '
+           '${dt.hour.toString().padLeft(2, '0')}:${dt.minute.toString().padLeft(2, '0')}:${dt.second.toString().padLeft(2, '0')}';
+  }
 }
 
 // ============== 데이터 클래스 ==============
@@ -841,6 +1051,7 @@ enum ChatItemType {
   card,
   selection,
   result,
+  signature,
 }
 
 class ChatItem {
@@ -858,6 +1069,10 @@ class ChatItem {
   final int? percentage;
   final VoidCallback? onConfirm;
   final bool isDisabled;
+  // 전자서명 관련 필드
+  final String? signatureId;
+  final DateTime? signedAt;
+  final String? hashPreview;
 
   ChatItem({
     required this.type,
@@ -874,6 +1089,9 @@ class ChatItem {
     this.percentage,
     this.onConfirm,
     this.isDisabled = false,
+    this.signatureId,
+    this.signedAt,
+    this.hashPreview,
   });
 
   bool get hasInteraction => type == ChatItemType.selection;
@@ -893,6 +1111,9 @@ class ChatItem {
       resultDescription: resultDescription,
       percentage: percentage,
       onConfirm: onConfirm,
+      signatureId: signatureId,
+      signedAt: signedAt,
+      hashPreview: hashPreview,
       isDisabled: true,
     );
   }
@@ -943,6 +1164,19 @@ class ChatItem {
       resultDescription: description,
       percentage: percentage,
       onConfirm: onConfirm,
+    );
+  }
+
+  factory ChatItem.signatureCard({
+    required String signatureId,
+    required DateTime signedAt,
+    required String hashPreview,
+  }) {
+    return ChatItem(
+      type: ChatItemType.signature,
+      signatureId: signatureId,
+      signedAt: signedAt,
+      hashPreview: hashPreview,
     );
   }
 }
