@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
+import '../../common/app_routes.dart';
+import '../../common/utils.dart';
 import '../../data/service/mock_api.dart';
-import '../mock_investment/screens/mock_account_create_screen.dart';
 import 'constants/app_colors.dart';
 import 'personal_info_screen.dart';
 
@@ -425,16 +426,29 @@ class _MenuScreenState extends State<MenuScreen> {
   Widget _buildMockInvestmentEntry(BuildContext context) {
     return GestureDetector(
       onTap: () async {
-        // 1. 계좌가 있는지 서버에 확인 (비동기 처리)
-        bool hasAccount = await MockApi.checkHasAccount();
+        try {
+          // 1. 로딩 시작
+          AppUtils.showLoading(context);
 
-        if (!context.mounted) return;
+          // 2. 계좌 여부 확인 API 호출
+          bool hasAccount = await MockApi.checkHasAccount();
 
-        // 2. 결과에 따라 다른 화면으로 이동
-        if (hasAccount) {
-          Navigator.pushNamed(context, '/mock/dashboard');
-        } else {
-          Navigator.pushNamed(context, '/mock/create');
+          // 3. 로딩 종료 (context가 유효한지 확인)
+          if (!context.mounted) return;
+          AppUtils.hideLoading(context);
+
+          // 4. 결과에 따른 화면 이동
+          if (hasAccount) {
+            Navigator.pushNamed(context, AppRoutes.mockDashboard);
+          } else {
+            Navigator.pushNamed(context, AppRoutes.mockCreate);
+          }
+        } catch (e) {
+          // 5. 예외 발생 시 처리
+          if (context.mounted) {
+            AppUtils.hideLoading(context);
+            AppUtils.showError(context, '서버 통신 중 오류가 발생했습니다. 다시 시도해주세요.');
+          }
         }
       },
       child: Container(

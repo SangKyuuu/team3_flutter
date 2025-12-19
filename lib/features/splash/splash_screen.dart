@@ -1,10 +1,11 @@
 import 'dart:async';
+
 import 'package:flutter/material.dart';
 import 'package:google_fonts/google_fonts.dart';
+import 'package:team3/data/service/auth_api.dart';
+import 'package:team3/data/service/token_storage.dart';
 import 'package:team3/features/auth/login_screen.dart';
 import 'package:team3/features/home/home_screen.dart';
-import 'package:team3/data/service/token_storage.dart';
-import 'package:team3/data/service/auth_api.dart';
 
 class SplashScreen extends StatefulWidget {
   const SplashScreen({super.key});
@@ -14,7 +15,6 @@ class SplashScreen extends StatefulWidget {
 }
 
 class _SplashScreenState extends State<SplashScreen> {
-
   @override
   void initState() {
     super.initState();
@@ -48,8 +48,8 @@ class _SplashScreenState extends State<SplashScreen> {
   void _goLogin() {
     Navigator.pushReplacement(
       context,
+      //MaterialPageRoute(builder: (_) => const LoginScreen()),
       MaterialPageRoute(builder: (_) => const HomeScreen()),
-      //MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
   }
 

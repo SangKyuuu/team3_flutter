@@ -11,6 +11,7 @@ class MockDashboardScreen extends StatefulWidget {
 
 class _MockDashboardScreenState extends State<MockDashboardScreen> {
   bool _isLoading = true;
+  bool _hasError = false;
   double _totalAsset = 0;
   double _profitRate = 0;
   List<dynamic> _myFunds = [];
@@ -22,12 +23,31 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
   }
 
   Future<void> _loadDashboardData() async {
-    final data = await MockApi.getMockDashboardSummary();
-    if (data != null) {
+    setState(() {
+      _isLoading = true;
+      _hasError = false; // 시작할 때 에러 상태 초기화
+    });
+
+    try {
+      final data = await MockApi.getMockDashboardSummary();
+      if (data != null) {
+        setState(() {
+          _totalAsset = data['totalAsset']?.toDouble() ?? 0;
+          _profitRate = data['profitRate']?.toDouble() ?? 0;
+          _myFunds = data['funds'] ?? [];
+          _isLoading = false;
+        });
+      } else {
+        // 데이터가 비어있거나 응답이 비정상일 때
+        setState(() {
+          _hasError = true;
+          _isLoading = false;
+        });
+      }
+    } catch (e) {
+      // 네트워크 연결 실패 등 예외 발생 시
       setState(() {
-        _totalAsset = data['totalAsset']?.toDouble() ?? 0;
-        _profitRate = data['profitRate']?.toDouble() ?? 0;
-        _myFunds = data['funds'] ?? [];
+        _hasError = true;
         _isLoading = false;
       });
     }
@@ -35,7 +55,6 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
 
   @override
   Widget build(BuildContext context) {
-    // 수익률에 따른 강조 색상 결정 (기존 프로젝트 스타일 적용)
     final Color trendColor = _profitRate >= 0 ? Colors.redAccent : Colors.blueAccent;
 
     return Scaffold(
@@ -46,29 +65,31 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
         backgroundColor: Colors.white,
         elevation: 0,
       ),
+      // 🔥 삼항 연산자를 사용하여 화면을 3가지 상태로 나눕니다.
       body: _isLoading
-          ? const Center(child: CircularProgressIndicator())
-          : SingleChildScrollView(
-        padding: const EdgeInsets.all(20),
-        child: Column(
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            // 1. 총 자산 및 수익률 카드
-            _buildSummaryCard(trendColor),
-
-            const SizedBox(height: 20),
-
-            // 2. AI 포트폴리오 진단 배너 (강조 포인트)
-            _buildAIDiagnosisBanner(),
-
-            const SizedBox(height: 24),
-
-            const Text('보유 펀드 내역', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
-            const SizedBox(height: 12),
-
-            // 3. 보유 펀드 리스트
-            ..._myFunds.map((fund) => _buildFundItem(fund)).toList(),
-          ],
+          ? const Center(child: CircularProgressIndicator()) //로딩 중
+          : _hasError
+          ? _buildErrorView() //에러 발생 시
+          : RefreshIndicator( //정상 데이터 로드 시 (새로고침 기능 포함)
+        onRefresh: _loadDashboardData,
+        child: SingleChildScrollView(
+          physics: const AlwaysScrollableScrollPhysics(), // 리스트가 짧아도 새로고침 작동
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              //총 자산 및 수익률 카드
+              _buildSummaryCard(trendColor),
+              const SizedBox(height: 20),
+              //AI 포트폴리오 진단 배너
+              _buildAIDiagnosisBanner(),
+              const SizedBox(height: 24),
+              const Text('보유 펀드 내역', style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 12),
+              //보유 펀드 리스트
+              ..._myFunds.map((fund) => _buildFundItem(fund)).toList(),
+            ],
+          ),
         ),
       ),
     );
@@ -167,6 +188,38 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
               color: fund['profit'] >= 0 ? Colors.redAccent : Colors.blueAccent,
               fontWeight: FontWeight.bold,
             ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  // 에러 발생 시 보여줄 화면 위젯
+  Widget _buildErrorView() {
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey.shade400),
+          const SizedBox(height: 16),
+          const Text(
+            '데이터를 불러올 수 없습니다',
+            style: TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.w500),
+          ),
+          const SizedBox(height: 8),
+          const Text(
+            '네트워크 연결 상태를 확인해주세요.',
+            style: TextStyle(fontSize: 14, color: Colors.grey),
+          ),
+          const SizedBox(height: 24),
+          ElevatedButton(
+            onPressed: _loadDashboardData, // 다시 시도 버튼
+            style: ElevatedButton.styleFrom(
+              backgroundColor: AppColors.primaryColor,
+              foregroundColor: Colors.white,
+              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
+            ),
+            child: const Text('다시 시도'),
           ),
         ],
       ),
