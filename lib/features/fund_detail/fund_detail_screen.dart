@@ -2,6 +2,8 @@ import 'package:flutter/material.dart';
 import 'package:fl_chart/fl_chart.dart';
 import '../home/constants/app_colors.dart';
 import '../subscription/fund_subscription_screen.dart';
+import '../investment_propensity/investment_propensity_screen.dart';
+import '../terms_agreement/terms_agreement_screen.dart';
 
 class FundDetailScreen extends StatefulWidget {
   final String title;
@@ -27,12 +29,12 @@ class _FundDetailScreenState extends State<FundDetailScreen> {
   int _selectedPeriod = 0;
   final List<String> _periods = ['3개월', '6개월', '1년', '3년'];
 
-  // 샘플 자산 구성 데이터
+  // 샘플 자산 구성 데이터 (파란색과 조화로운 부드러운 색상 팔레트)
   final List<AssetComposition> _assets = [
-    AssetComposition(name: '채권', percentage: 69.3, color: const Color(0xFF4CAF50)),
-    AssetComposition(name: '유동성', percentage: 28.9, color: const Color(0xFFFF8A80)),
-    AssetComposition(name: '수익증권', percentage: 1.7, color: const Color(0xFFFFD54F)),
-    AssetComposition(name: '주식', percentage: 0.1, color: const Color(0xFF42A5F5)),
+    AssetComposition(name: '채권', percentage: 69.3, color: const Color(0xFF4DB6AC)), // 부드러운 청록색
+    AssetComposition(name: '유동성', percentage: 28.9, color: const Color(0xFF9575CD)), // 부드러운 라벤더
+    AssetComposition(name: '수익증권', percentage: 1.7, color: const Color(0xFF64B5F6)), // 연한 스카이 블루
+    AssetComposition(name: '주식', percentage: 0.1, color: const Color(0xFF90A4AE)), // 부드러운 블루 그레이
   ];
 
   // 샘플 TOP 10 종목 데이터
@@ -155,10 +157,10 @@ class _FundDetailScreenState extends State<FundDetailScreen> {
               const SizedBox(width: 10),
               Text(
                 '+${widget.yieldText}',
-                style: const TextStyle(
+                style: TextStyle(
                   fontSize: 28,
                   fontWeight: FontWeight.w700,
-                  color: Colors.red,
+                  color: AppColors.primaryColor,
                 ),
               ),
             ],
@@ -241,8 +243,8 @@ class _FundDetailScreenState extends State<FundDetailScreen> {
                 return touchedSpots.map((spot) {
                   return LineTooltipItem(
                     '+${((spot.y - 1) * 100).toStringAsFixed(2)}%',
-                    const TextStyle(
-                      color: Colors.red,
+                    TextStyle(
+                      color: AppColors.primaryColor,
                       fontWeight: FontWeight.w600,
                       fontSize: 12,
                     ),
@@ -256,7 +258,7 @@ class _FundDetailScreenState extends State<FundDetailScreen> {
               spots: spots,
               isCurved: true,
               curveSmoothness: 0.3,
-              color: Colors.red,
+              color: AppColors.primaryColor,
               barWidth: 2.5,
               isStrokeCapRound: true,
               dotData: const FlDotData(show: false),
@@ -264,8 +266,8 @@ class _FundDetailScreenState extends State<FundDetailScreen> {
                 show: true,
                 gradient: LinearGradient(
                   colors: [
-                    Colors.red.withOpacity(0.15),
-                    Colors.red.withOpacity(0.0),
+                    AppColors.primaryColor.withOpacity(0.15),
+                    AppColors.primaryColor.withOpacity(0.0),
                   ],
                   begin: Alignment.topCenter,
                   end: Alignment.bottomCenter,
@@ -682,10 +684,11 @@ class _FundDetailScreenState extends State<FundDetailScreen> {
         height: 56,
         child: ElevatedButton(
           onPressed: () {
+            // 1단계: 투자성향 조사 (각 화면에서 다음 화면으로 직접 push)
             Navigator.push(
               context,
               MaterialPageRoute(
-                builder: (context) => FundSubscriptionScreen(
+                builder: (context) => InvestmentPropensityScreen(
                   fundTitle: widget.title,
                   badge: widget.badge,
                   yieldText: widget.yieldText,

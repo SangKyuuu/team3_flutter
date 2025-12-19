@@ -178,9 +178,9 @@ class FundCard extends StatelessWidget {
               Align(
                 alignment: Alignment.centerRight,
                 child: TextButton(
-                  onPressed: () async {
-                    // 1단계: 투자성향 조사
-                    final propensityResult = await Navigator.push<String>(
+                  onPressed: () {
+                    // 1단계: 투자성향 조사 (각 화면에서 다음 화면으로 직접 push)
+                    Navigator.push(
                       context,
                       MaterialPageRoute(
                         builder: (context) => InvestmentPropensityScreen(
@@ -190,36 +190,6 @@ class FundCard extends StatelessWidget {
                         ),
                       ),
                     );
-                    
-                    // 투자성향 조사 완료 후 약관 동의 화면으로 이동
-                    if (propensityResult != null && context.mounted) {
-                      // 2단계: 약관 동의
-                      final termsResult = await Navigator.push<bool>(
-                        context,
-                        MaterialPageRoute(
-                          builder: (context) => TermsAgreementScreen(
-                            fundTitle: title,
-                            badge: badge,
-                            yieldText: yieldText,
-                          ),
-                        ),
-                      );
-                      
-                      // 약관 동의 완료 후 펀드 가입 화면으로 이동
-                      if (termsResult == true && context.mounted) {
-                        // 3단계: 펀드 가입
-                        Navigator.push(
-                          context,
-                          MaterialPageRoute(
-                            builder: (context) => FundSubscriptionScreen(
-                              fundTitle: title,
-                              badge: badge,
-                              yieldText: yieldText,
-                            ),
-                          ),
-                        );
-                      }
-                    }
                   },
                   style: TextButton.styleFrom(
                     padding: EdgeInsets.zero,

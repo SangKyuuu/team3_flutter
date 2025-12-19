@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../home/constants/app_colors.dart';
+import '../subscription/fund_subscription_screen.dart';
 
 class TermsAgreementScreen extends StatefulWidget {
   final String fundTitle;
@@ -109,8 +110,30 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
   }
 
   void _handleDocumentTap(String documentType) {
-    // 문서 상세 보기 (바텀시트로 표시)
-    _showDocumentDetail(documentType);
+    // 체크된 문서를 클릭하면 체크 해제, 체크 안 된 문서는 상세 보기
+    final isChecked = _isDocumentChecked(documentType);
+    if (isChecked) {
+      // 체크 해제
+      _toggleDocumentCheck(documentType);
+    } else {
+      // 문서 상세 보기 (바텀시트로 표시)
+      _showDocumentDetail(documentType);
+    }
+  }
+
+  bool _isDocumentChecked(String documentType) {
+    switch (documentType) {
+      case 'core':
+        return _checkedCoreSummary;
+      case 'simple':
+        return _checkedSimpleGuide;
+      case 'full':
+        return _checkedFullGuide;
+      case 'terms':
+        return _checkedTerms;
+      default:
+        return false;
+    }
   }
 
   void _showDocumentDetail(String documentType) {
@@ -244,9 +267,9 @@ ${widget.badge}
 
   Widget _buildDocumentBottomSheet(String title, String content, String documentType) {
     return Container(
-      height: MediaQuery.of(context).size.height * 0.85,
+      height: MediaQuery.of(context).size.height * 0.9,
       decoration: const BoxDecoration(
-        color: Colors.white,
+        color: Color(0xFFF5F5F5),
         borderRadius: BorderRadius.only(
           topLeft: Radius.circular(24),
           topRight: Radius.circular(24),
@@ -264,42 +287,168 @@ ${widget.badge}
               borderRadius: BorderRadius.circular(2),
             ),
           ),
-          // 헤더
-          Padding(
-            padding: const EdgeInsets.all(20),
+          // 헤더 (PDF 뷰어 스타일)
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 12),
             child: Row(
               children: [
-                Icon(Icons.description_outlined, color: AppColors.primaryColor, size: 24),
+                Icon(Icons.picture_as_pdf, color: AppColors.primaryColor, size: 24),
                 const SizedBox(width: 12),
                 Expanded(
                   child: Text(
                     title,
                     style: const TextStyle(
-                      fontSize: 18,
-                      fontWeight: FontWeight.w700,
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
                     ),
                   ),
                 ),
                 IconButton(
-                  icon: const Icon(Icons.close),
+                  icon: const Icon(Icons.close, size: 22),
                   onPressed: () => Navigator.pop(context),
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+              ],
+            ),
+          ),
+          // 툴바 (PDF 뷰어 스타일)
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.zoom_out, size: 20),
+                  onPressed: () {},
+                  color: Colors.grey.shade700,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.zoom_in, size: 20),
+                  onPressed: () {},
+                  color: Colors.grey.shade700,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const Spacer(),
+                IconButton(
+                  icon: const Icon(Icons.fullscreen, size: 20),
+                  onPressed: () {},
+                  color: Colors.grey.shade700,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
+                ),
+                const SizedBox(width: 8),
+                IconButton(
+                  icon: const Icon(Icons.download_outlined, size: 20),
+                  onPressed: () {},
+                  color: Colors.grey.shade700,
+                  padding: EdgeInsets.zero,
+                  constraints: const BoxConstraints(),
                 ),
               ],
             ),
           ),
           const Divider(height: 1),
-          // 내용
+          // PDF 뷰어 영역
           Expanded(
-            child: SingleChildScrollView(
-              padding: const EdgeInsets.all(20),
-              child: Text(
-                content,
-                style: TextStyle(
-                  fontSize: 14,
-                  height: 1.8,
-                  color: Colors.grey.shade800,
+            child: Container(
+              margin: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: Colors.white,
+                borderRadius: BorderRadius.circular(8),
+                boxShadow: [
+                  BoxShadow(
+                    color: Colors.black.withOpacity(0.1),
+                    blurRadius: 10,
+                    offset: const Offset(0, 2),
+                  ),
+                ],
+              ),
+              child: ClipRRect(
+                borderRadius: BorderRadius.circular(8),
+                child: SingleChildScrollView(
+                  padding: const EdgeInsets.all(24),
+                  child: Column(
+                    crossAxisAlignment: CrossAxisAlignment.start,
+                    children: [
+                      // 문서 헤더
+                      Container(
+                        padding: const EdgeInsets.all(16),
+                        decoration: BoxDecoration(
+                          color: Colors.grey.shade50,
+                          borderRadius: BorderRadius.circular(8),
+                        ),
+                        child: Row(
+                          children: [
+                            Icon(Icons.description, color: AppColors.primaryColor, size: 20),
+                            const SizedBox(width: 8),
+                            Text(
+                              title,
+                              style: const TextStyle(
+                                fontSize: 16,
+                                fontWeight: FontWeight.w600,
+                              ),
+                            ),
+                          ],
+                        ),
+                      ),
+                      const SizedBox(height: 24),
+                      // 문서 내용 (PDF처럼 보이도록)
+                      Container(
+                        padding: const EdgeInsets.all(20),
+                        decoration: BoxDecoration(
+                          color: Colors.white,
+                          border: Border.all(color: Colors.grey.shade200),
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Text(
+                          content,
+                          style: TextStyle(
+                            fontSize: 13,
+                            height: 1.8,
+                            color: Colors.grey.shade800,
+                            fontFamily: 'monospace',
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
                 ),
               ),
+            ),
+          ),
+          // 하단 툴바
+          Container(
+            color: Colors.white,
+            padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+            child: Row(
+              mainAxisAlignment: MainAxisAlignment.center,
+              children: [
+                IconButton(
+                  icon: const Icon(Icons.chevron_left, size: 24),
+                  onPressed: () {},
+                  color: Colors.grey.shade700,
+                ),
+                const SizedBox(width: 16),
+                Text(
+                  '1 / 1',
+                  style: TextStyle(
+                    fontSize: 14,
+                    color: Colors.grey.shade600,
+                  ),
+                ),
+                const SizedBox(width: 16),
+                IconButton(
+                  icon: const Icon(Icons.chevron_right, size: 24),
+                  onPressed: () {},
+                  color: Colors.grey.shade700,
+                ),
+              ],
             ),
           ),
           // 확인 버튼
@@ -352,19 +501,24 @@ ${widget.badge}
   }
 
   void _markDocumentAsRead(String documentType) {
+    // 문서 확인 시 체크
+    _toggleDocumentCheck(documentType, forceCheck: true);
+  }
+
+  void _toggleDocumentCheck(String documentType, {bool forceCheck = false}) {
     setState(() {
       switch (documentType) {
         case 'core':
-          _checkedCoreSummary = true;
+          _checkedCoreSummary = forceCheck ? true : !_checkedCoreSummary;
           break;
         case 'simple':
-          _checkedSimpleGuide = true;
+          _checkedSimpleGuide = forceCheck ? true : !_checkedSimpleGuide;
           break;
         case 'full':
-          _checkedFullGuide = true;
+          _checkedFullGuide = forceCheck ? true : !_checkedFullGuide;
           break;
         case 'terms':
-          _checkedTerms = true;
+          _checkedTerms = forceCheck ? true : !_checkedTerms;
           break;
       }
 
@@ -385,66 +539,73 @@ ${widget.badge}
       }
     });
 
-    // 체크 완료 메시지
-    String docName;
-    switch (documentType) {
-      case 'core':
-        docName = '핵심상품설명서';
-        break;
-      case 'simple':
-        docName = '간이투자설명서';
-        break;
-      case 'full':
-        docName = '투자설명서';
-        break;
-      case 'terms':
-        docName = '집합투자규약';
-        break;
-      default:
-        docName = '문서';
+    // 모두 체크했으면 축하 메시지 (체크 해제 시에는 메시지 제거)
+    if (_allChecked && !forceCheck) {
+      // 체크 해제 시에는 메시지 추가 안 함
+      return;
     }
-
-    _addUserMessage('$docName 확인 완료');
-
-    // 모두 체크했으면 축하 메시지
-    if (_allChecked) {
+    
+    if (_allChecked && forceCheck) {
       Future.delayed(const Duration(milliseconds: 300), () {
-        _addBotMessage(
-          ChatItem.textMessage('모든 서류를 확인하셨네요! 👏\n이제 아래 버튼을 눌러 다음 단계로 진행해 주세요.'),
-        );
+        if (mounted) {
+          _addBotMessage(
+            ChatItem.textMessage('모든 서류를 확인하셨네요! 👏\n이제 아래 버튼을 눌러 다음 단계로 진행해 주세요.'),
+          );
+        }
       });
     }
   }
 
   void _handleConfirm() {
     if (_allChecked) {
-      Navigator.pop(context, true); // 다음 단계로 진행
+      // 펀드 가입 화면으로 이동 (pop하지 않고 push)
+      Navigator.push(
+        context,
+        MaterialPageRoute(
+          builder: (context) => FundSubscriptionScreen(
+            fundTitle: widget.fundTitle,
+            badge: widget.badge,
+            yieldText: widget.yieldText,
+          ),
+        ),
+      );
     }
   }
 
   @override
   Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0.5,
-        surfaceTintColor: Colors.transparent,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black87, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          '서류 확인',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-            fontSize: 17,
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop && Navigator.canPop(context)) {
+          Navigator.pop(context);
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FB),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 0.5,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black87, size: 20),
+            onPressed: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              }
+            },
           ),
+          title: const Text(
+            '서류 확인',
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.w600,
+              fontSize: 17,
+            ),
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
       body: Column(
         children: [
           // 진행 바
@@ -472,6 +633,7 @@ ${widget.badge}
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -810,7 +972,7 @@ ${widget.badge}
     required VoidCallback onTap,
   }) {
     return InkWell(
-      onTap: isChecked ? null : onTap,
+      onTap: onTap, // 체크된 상태에서도 클릭 가능
       borderRadius: BorderRadius.circular(12),
       child: Container(
         padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 14),

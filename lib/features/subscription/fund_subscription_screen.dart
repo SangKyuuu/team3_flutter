@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import '../home/constants/app_colors.dart';
+import '../home/home_screen.dart';
 import 'services/signature_service.dart';
 import 'models/electronic_signature.dart';
 import 'widgets/password_input_dialog.dart';
@@ -34,6 +35,9 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
   String? _riskAwareness;
   String? _lossScale;
   String? _investmentType;
+  String? _investmentSchedule; // 매일/매주/매월 선택
+  String? _weeklyDay; // 매주 선택 시 요일
+  int? _monthlyDay; // 매월 선택 시 일자
   int? _investmentAmount;
   bool _isCompleted = false;
   
@@ -235,8 +239,8 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
 
     await _addBotMessage(
       ChatItem.selectionCard(
-        question: '어떤 방식으로 투자하고 싶으세요?',
-        options: ['매월 자동으로 투자하기', '한 번만 투자하기'],
+        question: '어떻게 투자할까요?',
+        options: ['매일, 매주, 매월 투자하기', '한 번만 투자하기'],
         onSelect: _handleInvestmentType,
       ),
     );
@@ -245,14 +249,90 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
 
   Future<void> _handleInvestmentType(String answer) async {
     _addUserMessage(answer);
-    setState(() => _investmentType = answer);
     _disableLastSelection();
 
-    String response = answer.contains('자동') 
-        ? '꾸준히 투자하시는군요! 좋은 습관이에요 💪'
-        : '좋아요! 원하실 때 추가 투자도 가능해요 😊';
-    
-    await _addBotMessage(ChatItem.textMessage(response));
+    if (answer.contains('매일') || answer.contains('매주') || answer.contains('매월')) {
+      setState(() => _investmentType = '매일, 매주, 매월 투자하기');
+      await _addBotMessage(ChatItem.textMessage('꾸준히 투자하시는군요! 좋은 습관이에요 💪'));
+      
+      // 자동이체 주기 선택 - 휠 피커 사용
+      await _addBotMessage(
+        ChatItem.wheelPicker(
+          pickerType: 'schedule', // 주기 선택 모드
+          onSelect: (frequency, day) {
+            if (frequency == '매일') {
+              _handleInvestmentSchedule('매일');
+            } else if (frequency == '매주' && day.isNotEmpty) {
+              setState(() => _weeklyDay = day);
+              _handleScheduleComplete('매주 $day');
+            } else if (frequency == '매월' && day.isNotEmpty) {
+              setState(() => _monthlyDay = int.parse(day.replaceAll('일', '')));
+              _handleScheduleComplete('매월 $day');
+            } else {
+              // 주기만 선택하고 날짜/요일은 아직 선택하지 않은 경우
+              _handleInvestmentSchedule(frequency);
+            }
+          },
+        ),
+      );
+      setState(() => _currentStep = 4);
+    } else {
+      setState(() => _investmentType = '한 번만 투자하기');
+      await _addBotMessage(ChatItem.textMessage('좋아요! 원하실 때 추가 투자도 가능해요 😊'));
+
+      await _addBotMessage(
+        ChatItem.amountInput(
+          question: '얼마를 투자하실 건가요?',
+          hint: '1,000원 이상 입력해 주세요',
+          onSubmit: _handleAmountSubmit,
+        ),
+      );
+      setState(() => _currentStep = 5);
+    }
+  }
+
+  Future<void> _handleInvestmentSchedule(String schedule) async {
+    // 주기 선택 휠 피커에서 이미 선택했으므로 바로 처리
+    if (schedule == '매일') {
+      _addUserMessage('매일');
+      setState(() => _investmentSchedule = '매일');
+      _disableLastSelection();
+      _handleScheduleComplete('매일');
+    } else if (schedule == '매주') {
+      // 매주는 요일 선택 필요 - 휠 피커에서 이미 선택했을 수 있음
+      // 하지만 여기서는 주기만 받았으므로 요일 선택 휠 피커를 보여줌
+      _addUserMessage('매주');
+      setState(() => _investmentSchedule = '매주');
+      _disableLastSelection();
+      await _addBotMessage(
+        ChatItem.wheelPicker(
+          pickerType: 'weekly',
+          onSelect: (frequency, day) {
+            setState(() => _weeklyDay = day);
+            _handleScheduleComplete('매주 $day');
+          },
+        ),
+      );
+    } else if (schedule == '매월') {
+      // 매월은 일자 선택 필요 - 휠 피커에서 이미 선택했을 수 있음
+      // 하지만 여기서는 주기만 받았으므로 일자 선택 휠 피커를 보여줌
+      _addUserMessage('매월');
+      setState(() => _investmentSchedule = '매월');
+      _disableLastSelection();
+      await _addBotMessage(
+        ChatItem.wheelPicker(
+          pickerType: 'monthly',
+          onSelect: (frequency, day) {
+            setState(() => _monthlyDay = int.parse(day.replaceAll('일', '')));
+            _handleScheduleComplete('매월 $day');
+          },
+        ),
+      );
+    }
+  }
+
+  Future<void> _handleScheduleComplete(String scheduleText) async {
+    await _addBotMessage(ChatItem.textMessage('$scheduleText로 자동이체 하시는군요! 알겠어요 📅'));
 
     await _addBotMessage(
       ChatItem.amountInput(
@@ -278,6 +358,7 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
         amount: amount,
         accountName: '내 통장',
         accountNumber: '1234',
+        accountBalance: 5000000, // 잔액 (예시)
         onConfirm: () => _handleAccountConfirm(true),
         onChange: () => _handleAccountConfirm(true),
       ),
@@ -293,11 +374,23 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
       ChatItem.textMessage('거의 다 왔어요! 마지막으로 확인해 주세요 📋'),
     );
 
+    // 투자 방식 텍스트 생성
+    String investmentTypeText = _investmentType ?? '한 번만 투자하기';
+    if (_investmentType == '매일, 매주, 매월 투자하기' && _investmentSchedule != null) {
+      if (_weeklyDay != null) {
+        investmentTypeText = '매주 $_weeklyDay';
+      } else if (_monthlyDay != null) {
+        investmentTypeText = '매월 $_monthlyDay일';
+      } else {
+        investmentTypeText = '매일';
+      }
+    }
+
     await _addBotMessage(
       ChatItem.summaryCard(
         fundName: widget.fundTitle,
         amount: _investmentAmount!,
-        investmentType: _investmentType ?? '한 번만 투자하기',
+        investmentType: investmentTypeText,
         accountInfo: '내 통장 (1234)',
         onSubmit: _handleFinalSubmit,
       ),
@@ -363,11 +456,7 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
     );
     
     await _addBotMessage(
-      ChatItem.signatureCard(
-        signatureId: _signature!.signatureId,
-        signedAt: _signature!.signedAt,
-        hashPreview: _signature!.signatureHash.substring(0, 20),
-      ),
+      ChatItem.textMessage('전자서명이 완료되었어요! ✍️'),
     );
     
     await _addBotMessage(
@@ -375,7 +464,11 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
     );
     
     await Future.delayed(const Duration(milliseconds: 800));
-    setState(() => _isCompleted = true);
+    
+    // 완료 화면 표시
+    if (mounted) {
+      setState(() => _isCompleted = true);
+    }
   }
 
   void _disableLastSelection() {
@@ -402,27 +495,40 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
       return _buildCompletionScreen();
     }
 
-    return Scaffold(
-      backgroundColor: const Color(0xFFF8F9FB),
-      appBar: AppBar(
-        backgroundColor: Colors.white,
-        elevation: 0,
-        scrolledUnderElevation: 0.5,
-        surfaceTintColor: Colors.transparent,
-        leading: IconButton(
-          icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black87, size: 20),
-          onPressed: () => Navigator.pop(context),
-        ),
-        title: const Text(
-          '펀드 가입',
-          style: TextStyle(
-            color: Colors.black87,
-            fontWeight: FontWeight.w600,
-            fontSize: 17,
+    return PopScope(
+      canPop: false,
+      onPopInvoked: (didPop) {
+        if (!didPop) {
+          if (Navigator.canPop(context)) {
+            Navigator.pop(context);
+          }
+        }
+      },
+      child: Scaffold(
+        backgroundColor: const Color(0xFFF8F9FB),
+        appBar: AppBar(
+          backgroundColor: Colors.white,
+          elevation: 0,
+          scrolledUnderElevation: 0.5,
+          surfaceTintColor: Colors.transparent,
+          leading: IconButton(
+            icon: const Icon(Icons.arrow_back_ios_new_rounded, color: Colors.black87, size: 20),
+            onPressed: () {
+              if (Navigator.canPop(context)) {
+                Navigator.pop(context);
+              }
+            },
           ),
+          title: const Text(
+            '펀드 가입',
+            style: TextStyle(
+              color: Colors.black87,
+              fontWeight: FontWeight.w600,
+              fontSize: 17,
+            ),
+          ),
+          centerTitle: true,
         ),
-        centerTitle: true,
-      ),
       body: Column(
         children: [
           // 진행 바
@@ -450,6 +556,7 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
             ),
           ),
         ],
+      ),
       ),
     );
   }
@@ -540,7 +647,13 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
                 width: double.infinity,
                 height: 56,
                 child: ElevatedButton(
-                  onPressed: () => Navigator.pop(context),
+                  onPressed: () {
+                    Navigator.pushAndRemoveUntil(
+                      context,
+                      MaterialPageRoute(builder: (context) => const HomeScreen()),
+                      (route) => false, // 모든 이전 화면 제거
+                    );
+                  },
                   style: ElevatedButton.styleFrom(
                     backgroundColor: AppColors.primaryColor,
                     foregroundColor: Colors.white,
@@ -741,6 +854,8 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
         return _buildCardBubble(item);
       case ChatItemType.selection:
         return _buildSelectionCard(item);
+      case ChatItemType.wheelPicker:
+        return _buildWheelPicker(item);
       case ChatItemType.confirm:
         return _buildConfirmCard(item);
       case ChatItemType.amountInput:
@@ -883,6 +998,14 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
           }).toList(),
         ],
       ),
+    );
+  }
+
+  Widget _buildWheelPicker(ChatItem item) {
+    return _WheelPickerWidget(
+      pickerType: item.wheelPickerType!,
+      onSelect: item.onWheelSelect!,
+      isDisabled: item.isDisabled,
     );
   }
 
@@ -1118,26 +1241,54 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
               color: Colors.grey.shade50,
               borderRadius: BorderRadius.circular(12),
             ),
-            child: Row(
+            child: Column(
               children: [
-                Icon(Icons.account_balance_wallet_outlined, 
-                     color: AppColors.primaryColor, size: 20),
-                const SizedBox(width: 10),
-                Text(
-                  '출금계좌',
-                  style: TextStyle(
-                    fontSize: 13,
-                    color: Colors.grey.shade600,
-                  ),
+                Row(
+                  children: [
+                    Icon(Icons.account_balance_wallet_outlined, 
+                         color: AppColors.primaryColor, size: 20),
+                    const SizedBox(width: 10),
+                    Text(
+                      '출금계좌',
+                      style: TextStyle(
+                        fontSize: 13,
+                        color: Colors.grey.shade600,
+                      ),
+                    ),
+                    const Spacer(),
+                    Text(
+                      '${item.accountName} (${item.accountNumber})',
+                      style: const TextStyle(
+                        fontSize: 13,
+                        fontWeight: FontWeight.w600,
+                      ),
+                    ),
+                  ],
                 ),
-                const Spacer(),
-                Text(
-                  '${item.accountName} (${item.accountNumber})',
-                  style: const TextStyle(
-                    fontSize: 13,
-                    fontWeight: FontWeight.w600,
+                if (item.accountBalance != null) ...[
+                  const SizedBox(height: 8),
+                  Row(
+                    children: [
+                      const SizedBox(width: 30), // 아이콘 너비만큼 여백
+                      Text(
+                        '잔액',
+                        style: TextStyle(
+                          fontSize: 12,
+                          color: Colors.grey.shade600,
+                        ),
+                      ),
+                      const Spacer(),
+                      Text(
+                        '${_formatNumber(item.accountBalance!)}원',
+                        style: TextStyle(
+                          fontSize: 13,
+                          fontWeight: FontWeight.w600,
+                          color: AppColors.primaryColor,
+                        ),
+                      ),
+                    ],
                   ),
-                ),
+                ],
               ],
             ),
           ),
@@ -1502,6 +1653,7 @@ enum ChatItemType {
   user,
   card,
   selection,
+  wheelPicker,
   confirm,
   amountInput,
   accountConfirm,
@@ -1527,6 +1679,7 @@ class ChatItem {
   final int? amount;
   final String? accountName;
   final String? accountNumber;
+  final int? accountBalance; // 계좌 잔액
   final String? fundName;
   final String? investmentType;
   final String? accountInfo;
@@ -1536,6 +1689,9 @@ class ChatItem {
   final String? signatureId;
   final DateTime? signedAt;
   final String? hashPreview;
+  // 휠 피커 관련 필드
+  final String? wheelPickerType; // 'monthly' or 'weekly'
+  final Function(String, String)? onWheelSelect; // (주기, 날짜/요일)
 
   ChatItem({
     required this.type,
@@ -1555,6 +1711,7 @@ class ChatItem {
     this.amount,
     this.accountName,
     this.accountNumber,
+    this.accountBalance,
     this.fundName,
     this.investmentType,
     this.accountInfo,
@@ -1563,10 +1720,13 @@ class ChatItem {
     this.signatureId,
     this.signedAt,
     this.hashPreview,
+    this.wheelPickerType,
+    this.onWheelSelect,
   });
 
   bool get hasInteraction => 
       type == ChatItemType.selection ||
+      type == ChatItemType.wheelPicker ||
       type == ChatItemType.confirm ||
       type == ChatItemType.amountInput ||
       type == ChatItemType.accountConfirm ||
@@ -1591,6 +1751,7 @@ class ChatItem {
       amount: amount,
       accountName: accountName,
       accountNumber: accountNumber,
+      accountBalance: accountBalance,
       fundName: fundName,
       investmentType: investmentType,
       accountInfo: accountInfo,
@@ -1598,6 +1759,8 @@ class ChatItem {
       signatureId: signatureId,
       signedAt: signedAt,
       hashPreview: hashPreview,
+      wheelPickerType: wheelPickerType,
+      onWheelSelect: onWheelSelect,
       isDisabled: true,
     );
   }
@@ -1670,6 +1833,7 @@ class ChatItem {
     required int amount,
     required String accountName,
     required String accountNumber,
+    int? accountBalance,
     required VoidCallback onConfirm,
     required VoidCallback onChange,
   }) {
@@ -1678,6 +1842,7 @@ class ChatItem {
       amount: amount,
       accountName: accountName,
       accountNumber: accountNumber,
+      accountBalance: accountBalance,
       onConfirm: onConfirm,
     );
   }
@@ -1709,6 +1874,17 @@ class ChatItem {
       signatureId: signatureId,
       signedAt: signedAt,
       hashPreview: hashPreview,
+    );
+  }
+
+  factory ChatItem.wheelPicker({
+    required String pickerType, // 'monthly' or 'weekly'
+    required Function(String, String) onSelect, // (주기, 날짜/요일)
+  }) {
+    return ChatItem(
+      type: ChatItemType.wheelPicker,
+      wheelPickerType: pickerType,
+      onWheelSelect: onSelect,
     );
   }
 }
@@ -1792,6 +1968,302 @@ class _TypingDotState extends State<_TypingDot>
           ),
         );
       },
+    );
+  }
+}
+
+// ============== 휠 피커 위젯 ==============
+
+class _WheelPickerWidget extends StatefulWidget {
+  final String pickerType; // 'monthly' or 'weekly'
+  final Function(String, String) onSelect; // (주기, 날짜/요일)
+  final bool isDisabled;
+
+  const _WheelPickerWidget({
+    required this.pickerType,
+    required this.onSelect,
+    this.isDisabled = false,
+  });
+
+  @override
+  State<_WheelPickerWidget> createState() => _WheelPickerWidgetState();
+}
+
+class _WheelPickerWidgetState extends State<_WheelPickerWidget> {
+  final ScrollController _frequencyController = ScrollController();
+  final ScrollController _dayController = ScrollController();
+  
+  String _selectedFrequency = '매월';
+  String _selectedDay = '1일';
+  
+  List<String> get _frequencies => ['매일', '매주', '매월'];
+  List<String> get _days {
+    if (widget.pickerType == 'schedule') {
+      // 주기 선택 모드에서는 선택된 주기에 따라 날짜/요일 표시
+      if (_selectedFrequency == '매주') {
+        return ['월요일', '화요일', '수요일', '목요일', '금요일'];
+      } else if (_selectedFrequency == '매월') {
+        return List.generate(28, (index) => '${index + 1}일');
+      } else {
+        // 매일은 날짜 선택 불필요
+        return [];
+      }
+    } else if (widget.pickerType == 'weekly') {
+      return ['월요일', '화요일', '수요일', '목요일', '금요일'];
+    } else {
+      return List.generate(28, (index) => '${index + 1}일');
+    }
+  }
+
+  @override
+  void initState() {
+    super.initState();
+    if (widget.pickerType == 'schedule') {
+      // 주기 선택 모드 - 기본값으로 매월 선택하고 날짜도 함께 표시
+      _selectedFrequency = '매월';
+      final monthlyDays = List.generate(28, (index) => '${index + 1}일');
+      _selectedDay = monthlyDays[0]; // 기본값: 1일
+    } else if (widget.pickerType == 'weekly') {
+      _selectedFrequency = '매주';
+      _selectedDay = '월요일';
+    } else {
+      _selectedFrequency = '매월';
+      _selectedDay = '1일';
+    }
+    
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      _scrollToCenter(_frequencyController, _frequencies.indexOf(_selectedFrequency));
+      if (_days.isNotEmpty && _selectedDay.isNotEmpty) {
+        final dayIndex = _days.indexOf(_selectedDay);
+        if (dayIndex >= 0) {
+          _scrollToCenter(_dayController, dayIndex);
+        }
+      }
+    });
+    
+    _frequencyController.addListener(_onFrequencyScroll);
+    _dayController.addListener(_onDayScroll);
+  }
+
+  @override
+  void dispose() {
+    _frequencyController.dispose();
+    _dayController.dispose();
+    super.dispose();
+  }
+
+  void _onFrequencyScroll() {
+    if (!_frequencyController.hasClients) return;
+    final index = _getCenterIndex(_frequencyController);
+    if (index >= 0 && index < _frequencies.length) {
+      final newFrequency = _frequencies[index];
+      if (newFrequency != _selectedFrequency) {
+        setState(() {
+          _selectedFrequency = newFrequency;
+          // 주기 변경 시 날짜/요일 초기화
+          if (widget.pickerType == 'schedule') {
+            if (newFrequency == '매주' && _days.isNotEmpty) {
+              _selectedDay = _days[0];
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_dayController.hasClients) {
+                  _scrollToCenter(_dayController, 0);
+                }
+              });
+            } else if (newFrequency == '매월' && _days.isNotEmpty) {
+              _selectedDay = _days[0];
+              WidgetsBinding.instance.addPostFrameCallback((_) {
+                if (_dayController.hasClients) {
+                  _scrollToCenter(_dayController, 0);
+                }
+              });
+            } else {
+              _selectedDay = '';
+            }
+          }
+        });
+        _onSelectionChanged();
+      }
+    }
+  }
+
+  void _onDayScroll() {
+    if (!_dayController.hasClients) return;
+    final index = _getCenterIndex(_dayController);
+    if (index >= 0 && index < _days.length) {
+      final newDay = _days[index];
+      if (newDay != _selectedDay) {
+        setState(() {
+          _selectedDay = newDay;
+        });
+        _onSelectionChanged();
+      }
+    }
+  }
+
+  void _onSelectionChanged() {
+    // 주기 선택 모드에서는 확인 버튼을 눌러야만 전달
+    // 스크롤 중에는 전달하지 않음
+  }
+
+  int _getCenterIndex(ScrollController controller) {
+    if (!controller.hasClients) return -1;
+    final offset = controller.offset;
+    const itemHeight = 50.0;
+    return (offset / itemHeight).round();
+  }
+
+  void _scrollToCenter(ScrollController controller, int index) {
+    if (!controller.hasClients) return;
+    const itemHeight = 50.0;
+    final targetOffset = index * itemHeight;
+    controller.animateTo(
+      targetOffset,
+      duration: const Duration(milliseconds: 300),
+      curve: Curves.easeOut,
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Container(
+      padding: const EdgeInsets.all(18),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        children: [
+          Row(
+            children: [
+              Expanded(
+                child: _buildWheelColumn(
+                  controller: _frequencyController,
+                  items: _frequencies,
+                  selectedItem: _selectedFrequency,
+                ),
+              ),
+              if (widget.pickerType == 'schedule' && _days.isNotEmpty) ...[
+                const SizedBox(width: 20),
+                Expanded(
+                  child: _buildWheelColumn(
+                    controller: _dayController,
+                    items: _days,
+                    selectedItem: _selectedDay,
+                  ),
+                ),
+              ] else if (widget.pickerType != 'schedule') ...[
+                const SizedBox(width: 20),
+                Expanded(
+                  child: _buildWheelColumn(
+                    controller: _dayController,
+                    items: _days,
+                    selectedItem: _selectedDay,
+                  ),
+                ),
+              ],
+            ],
+          ),
+          const SizedBox(height: 16),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: widget.isDisabled ? null : () {
+                if (widget.pickerType == 'schedule') {
+                  if (_selectedFrequency == '매일') {
+                    widget.onSelect(_selectedFrequency, '');
+                  } else {
+                    widget.onSelect(_selectedFrequency, _selectedDay);
+                  }
+                } else {
+                  widget.onSelect(_selectedFrequency, _selectedDay);
+                }
+              },
+              style: ElevatedButton.styleFrom(
+                backgroundColor: widget.isDisabled
+                    ? Colors.grey.shade100
+                    : AppColors.primaryColor,
+                foregroundColor: widget.isDisabled
+                    ? Colors.grey.shade400
+                    : Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 15),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: const Text(
+                '확인',
+                style: TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w500,
+                ),
+              ),
+            ),
+          ),
+        ],
+      ),
+    );
+  }
+
+  Widget _buildWheelColumn({
+    required ScrollController controller,
+    required List<String> items,
+    required String selectedItem,
+  }) {
+    return Container(
+      height: 150,
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(12),
+      ),
+      child: Stack(
+        children: [
+          // 선택 영역 표시 (가운데 노란색 선)
+          Positioned(
+            top: 50,
+            left: 0,
+            right: 0,
+            child: Container(
+              height: 50,
+              decoration: BoxDecoration(
+                border: Border(
+                  top: BorderSide(color: AppColors.primaryColor, width: 2),
+                  bottom: BorderSide(color: AppColors.primaryColor, width: 2),
+                ),
+              ),
+            ),
+          ),
+          // 스크롤 가능한 리스트 (3개만 보이도록)
+          ListView.builder(
+            controller: controller,
+            padding: const EdgeInsets.symmetric(vertical: 50),
+            itemCount: items.length,
+            itemExtent: 50,
+            physics: const BouncingScrollPhysics(),
+            itemBuilder: (context, index) {
+              final item = items[index];
+              final isSelected = item == selectedItem;
+              return Center(
+                child: Text(
+                  item,
+                  style: TextStyle(
+                    fontSize: 18,
+                    fontWeight: isSelected ? FontWeight.w600 : FontWeight.w400,
+                    color: isSelected ? Colors.black : Colors.grey.shade400,
+                  ),
+                ),
+              );
+            },
+          ),
+        ],
+      ),
     );
   }
 }
