@@ -9,12 +9,14 @@ class FundSubscriptionScreen extends StatefulWidget {
   final String fundTitle;
   final String badge;
   final String yieldText;
+  final bool isMockInvestment;
 
   const FundSubscriptionScreen({
     super.key,
     required this.fundTitle,
     required this.badge,
     required this.yieldText,
+    this.isMockInvestment = false,
   });
 
   @override
@@ -82,10 +84,18 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
   }
 
   Future<void> _startConversation() async {
+    String welcomeTitle = widget.isMockInvestment
+        ? '반가워요! 😊\n${widget.fundTitle} 모의투자를 시작해볼까요?'
+        : '안녕하세요! 😊\n${widget.fundTitle} 가입을 도와드릴게요.';
+
+    String welcomeDesc = widget.isMockInvestment
+        ? '연습용 가상 자산으로 부담 없이 투자해보세요. 실제 돈은 나가지 않으니 안심하세요!'
+        : '펀드는 예금과 달라서 원금의 일부 또는 전부를 잃을 수도 있어요. 걱정 마세요, 차근차근 안내해 드릴게요!';
+
     await _addBotMessage(
       ChatItem.cardMessage(
-        title: '안녕하세요! 😊\n${widget.fundTitle} 가입을 도와드릴게요.',
-        description: '펀드는 예금과 달라서 원금의 일부 또는 전부를 잃을 수도 있어요. 걱정 마세요, 차근차근 안내해 드릴게요!',
+        title: welcomeTitle,
+        description: welcomeDesc,
       ),
       delay: 400,
     );
@@ -297,6 +307,22 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
 
   Future<void> _handleFinalSubmit() async {
     _disableLastSelection();
+
+    // 모의투자라면 전자서명 단계를 건너뛰거나 가상 서명으로 처리
+    if (widget.isMockInvestment) {
+      await _addBotMessage(ChatItem.textMessage('모의투자 신청을 처리 중입니다... ⚙️'));
+
+      // 모의투자 전용 API 호출
+      // bool success = await MockApi.subscribeMockFund(widget.fundTitle, _investmentAmount!);
+      await Future.delayed(const Duration(seconds: 1));
+
+      await _addBotMessage(
+        ChatItem.textMessage('모의투자 가입 완료! 🎉\n포트폴리오에서 수익률을 확인해보세요!'),
+      );
+
+      setState(() => _isCompleted = true);
+      return; //여기서 리턴하여 아래의 실제 서명 로직을 실행하지 않음
+    }
     
     // 전자서명 요청 메시지
     await _addBotMessage(

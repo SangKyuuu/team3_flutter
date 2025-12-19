@@ -1,19 +1,22 @@
+import 'package:dio/dio.dart';
+
 import 'api_client.dart';
 
 class MockApi {
   /// 사용자의 모의투자 계좌 존재 여부 확인
   static Future<bool> checkHasAccount() async {
     try {
-      // 서버의 계좌 조회 엔드포인트 호출 (예: /mock/account/status)
       final response = await ApiClient.dio.get('/mock/account/status');
-
       if (response.statusCode == 200) {
-        // 서버에서 'hasAccount': true/false 식으로 응답을 준다고 가정
         return response.data['hasAccount'] ?? false;
       }
       return false;
+    } on DioException catch (e) {
+      // 네트워크 타임아웃이나 서버 500 에러 등 처리
+      print('Account Check Error: ${e.message}');
+      rethrow; // 호출부(UI)에서 에러를 처리할 수 있게 던짐
     } catch (e) {
-      // 계좌가 없는 경우 404 에러가 발생할 수 있으므로 false 반환
+      print('Unexpected Error: $e');
       return false;
     }
   }
