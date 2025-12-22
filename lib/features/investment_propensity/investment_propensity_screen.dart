@@ -336,6 +336,18 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
       
       if (password == null || password.isEmpty) {
         // 취소한 경우
+        await _addBotMessage(
+          ChatItem.textMessage('전자서명이 취소되었어요.\n"펀드 가입하러 가기" 버튼을 다시 눌러주시면 전자서명을 이어서 진행할 수 있어요.'),
+        );
+        // 바로 투자성향 결과 카드 다시 표시
+        await _addBotMessage(
+          ChatItem.resultCard(
+            resultType: _resultType!,
+            description: _resultDescription!,
+            percentage: _resultPercentage!,
+            onConfirm: _handleResultConfirm,
+          ),
+        );
         return;
       }
       
