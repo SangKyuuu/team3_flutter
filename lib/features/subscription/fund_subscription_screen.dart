@@ -284,6 +284,9 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
         ChatItem.amountInput(
           question: '얼마를 투자하실 건가요?',
           hint: '1,000원 이상 입력해 주세요',
+          accountName: '내 통장',
+          accountNumber: '1234',
+          accountBalance: 5000000, // 잔액 (예시)
           onSubmit: _handleAmountSubmit,
         ),
       );
@@ -338,6 +341,9 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
       ChatItem.amountInput(
         question: '얼마를 투자하실 건가요?',
         hint: '1,000원 이상 입력해 주세요',
+        accountName: '내 통장',
+        accountNumber: '1234',
+        accountBalance: 5000000, // 잔액 (예시)
         onSubmit: _handleAmountSubmit,
       ),
     );
@@ -374,23 +380,11 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
       ChatItem.textMessage('거의 다 왔어요! 마지막으로 확인해 주세요 📋'),
     );
 
-    // 투자 방식 텍스트 생성
-    String investmentTypeText = _investmentType ?? '한 번만 투자하기';
-    if (_investmentType == '매일, 매주, 매월 투자하기' && _investmentSchedule != null) {
-      if (_weeklyDay != null) {
-        investmentTypeText = '매주 $_weeklyDay';
-      } else if (_monthlyDay != null) {
-        investmentTypeText = '매월 $_monthlyDay일';
-      } else {
-        investmentTypeText = '매일';
-      }
-    }
-
     await _addBotMessage(
       ChatItem.summaryCard(
         fundName: widget.fundTitle,
         amount: _investmentAmount!,
-        investmentType: investmentTypeText,
+        investmentType: _getInvestmentTypeText(),
         accountInfo: '내 통장 (1234)',
         onSubmit: _handleFinalSubmit,
       ),
@@ -432,17 +426,18 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
     if (password == null || password.isEmpty) {
       // 취소한 경우
       await _addBotMessage(
-        ChatItem.textMessage('전자서명이 취소되었어요.\n다시 시도하시려면 가입하기 버튼을 눌러주세요.'),
+        ChatItem.textMessage('전자서명이 취소되었어요.\n가입 내용 요약의 "펀드 가입하기" 버튼을 다시 눌러주시면 전자서명을 이어서 진행할 수 있어요.'),
       );
-      // 다시 가입 버튼 활성화
-      setState(() {
-        for (int i = _chatItems.length - 1; i >= 0; i--) {
-          if (_chatItems[i].type == ChatItemType.summary) {
-            // summaryCard를 다시 활성화 (새로 추가)
-            break;
-          }
-        }
-      });
+      // 바로 가입 내용 요약 카드 다시 표시
+      await _addBotMessage(
+        ChatItem.summaryCard(
+          fundName: widget.fundTitle,
+          amount: _investmentAmount!,
+          investmentType: _getInvestmentTypeText(),
+          accountInfo: '내 통장 (1234)',
+          onSubmit: _handleFinalSubmit,
+        ),
+      );
       return;
     }
     
@@ -487,6 +482,23 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
           RegExp(r'(\d{1,3})(?=(\d{3})+(?!\d))'),
           (Match m) => '${m[1]},',
         );
+  }
+
+  String _getInvestmentTypeText() {
+    String investmentTypeText = _investmentType ?? '한 번만 투자하기';
+    if (_investmentType == '매일, 매주, 매월 투자하기') {
+      if (_weeklyDay != null) {
+        investmentTypeText = '매주 $_weeklyDay';
+      } else if (_monthlyDay != null) {
+        investmentTypeText = '매월 $_monthlyDay일';
+      } else if (_investmentSchedule == '매일') {
+        investmentTypeText = '매일';
+      } else {
+        // 기본값 (선택이 안 된 경우)
+        investmentTypeText = '매일, 매주, 매월 투자하기';
+      }
+    }
+    return investmentTypeText;
   }
 
   @override
@@ -543,15 +555,26 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
           ),
           // 채팅 영역
           Expanded(
-            child: ListView.builder(
-              controller: _scrollController,
-              padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-              itemCount: _chatItems.length + (_isTyping ? 1 : 0),
-              itemBuilder: (context, index) {
-                if (_isTyping && index == _chatItems.length) {
-                  return _buildTypingIndicator();
-                }
-                return _buildChatItem(_chatItems[index]);
+            child: Builder(
+              builder: (context) {
+                final bottomInset = MediaQuery.of(context).padding.bottom;
+                const extraPadding = 28.0; // 기기 하단바와 겹치지 않게 추가 여백
+                return ListView.builder(
+                  controller: _scrollController,
+                  padding: EdgeInsets.fromLTRB(
+                    16,
+                    20,
+                    16,
+                    20 + bottomInset + extraPadding,
+                  ),
+                  itemCount: _chatItems.length + (_isTyping ? 1 : 0),
+                  itemBuilder: (context, index) {
+                    if (_isTyping && index == _chatItems.length) {
+                      return _buildTypingIndicator();
+                    }
+                    return _buildChatItem(_chatItems[index]);
+                  },
+                );
               },
             ),
           ),
@@ -1132,6 +1155,73 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
           ),
           if (!item.isDisabled) ...[
             const SizedBox(height: 16),
+            // 계좌 정보 표시
+            if (item.accountName != null && item.accountBalance != null) ...[
+              Container(
+                padding: const EdgeInsets.all(14),
+                decoration: BoxDecoration(
+                  color: Colors.grey.shade50,
+                  borderRadius: BorderRadius.circular(12),
+                  border: Border.all(color: Colors.grey.shade200),
+                ),
+                child: Row(
+                  children: [
+                    Icon(
+                      Icons.account_balance_wallet_outlined,
+                      color: AppColors.primaryColor,
+                      size: 20,
+                    ),
+                    const SizedBox(width: 10),
+                    Expanded(
+                      child: Column(
+                        crossAxisAlignment: CrossAxisAlignment.start,
+                        children: [
+                          Text(
+                            '${item.accountName}${item.accountNumber != null ? ' (${item.accountNumber})' : ''}',
+                            style: const TextStyle(
+                              fontSize: 14,
+                              fontWeight: FontWeight.w600,
+                            ),
+                          ),
+                          const SizedBox(height: 4),
+                          GestureDetector(
+                            onTap: () => _handleBalanceClick(item.accountBalance!),
+                            child: Row(
+                              children: [
+                                Text(
+                                  '잔액: ',
+                                  style: TextStyle(
+                                    fontSize: 13,
+                                    color: Colors.grey.shade600,
+                                  ),
+                                ),
+                                Text(
+                                  '${_formatNumber(item.accountBalance!)}원',
+                                  style: TextStyle(
+                                    fontSize: 14,
+                                    fontWeight: FontWeight.w600,
+                                    color: AppColors.primaryColor,
+                                    decoration: TextDecoration.underline,
+                                    decorationColor: AppColors.primaryColor,
+                                  ),
+                                ),
+                                const SizedBox(width: 4),
+                                Icon(
+                                  Icons.touch_app,
+                                  size: 16,
+                                  color: AppColors.primaryColor,
+                                ),
+                              ],
+                            ),
+                          ),
+                        ],
+                      ),
+                    ),
+                  ],
+                ),
+              ),
+              const SizedBox(height: 16),
+            ],
             Container(
               decoration: BoxDecoration(
                 color: Colors.grey.shade50,
@@ -1198,6 +1288,82 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
         ],
       ),
     );
+  }
+
+  Future<void> _handleBalanceClick(int balance) async {
+    // 잔액 전체를 입력 필드에 설정
+    _amountController.text = _formatNumber(balance);
+    
+    // 확인 질문 표시
+    await _addBotMessage(
+      ChatItem.confirmCard(
+        title: '잔액 전체를 투자하시겠어요?',
+        description: '${_formatNumber(balance)}원을 투자하시면 계좌 잔액이 0원이 됩니다.\n정말 진행하시겠어요?',
+        confirmText: '네, 전체 투자할게요',
+        cancelText: '아니오, 다시 입력할게요',
+        onConfirm: () => _handleFullBalanceConfirm(balance),
+        onCancel: () => _handleFullBalanceCancel(),
+      ),
+    );
+  }
+
+  Future<void> _handleFullBalanceConfirm(int balance) async {
+    _addUserMessage('네, 전체 투자할게요');
+    _disableLastSelection();
+    
+    // 금액 제출
+    await _handleAmountSubmit(balance);
+  }
+
+  Future<void> _handleFullBalanceCancel() async {
+    _addUserMessage('아니오, 다시 입력할게요');
+    _disableLastSelection();
+    
+    // 입력 필드 초기화
+    _amountController.clear();
+    
+    await _addBotMessage(
+      ChatItem.textMessage('알겠어요! 원하시는 금액을 입력해 주세요 💰'),
+    );
+    
+    // 바로 투자 금액 입력 카드 표시
+    await _addBotMessage(
+      ChatItem.amountInput(
+        question: '얼마를 투자하실 건가요?',
+        hint: '1,000원 이상 입력해 주세요',
+        accountName: '내 통장',
+        accountNumber: '1234',
+        accountBalance: 5000000, // 잔액 (예시)
+        onSubmit: _handleAmountSubmit,
+      ),
+    );
+  }
+
+  Future<void> _handleChangeAmount() async {
+    // 현재 금액 입력 카드 찾아서 비활성화
+    _disableLastSelection();
+    
+    // 사용자 메시지 추가
+    _addUserMessage('금액을 변경하고 싶어요');
+    
+    // 금액 입력 카드 다시 표시
+    await _addBotMessage(
+      ChatItem.textMessage('알겠어요! 다시 투자 금액을 입력해 주세요 💰'),
+    );
+    
+    await _addBotMessage(
+      ChatItem.amountInput(
+        question: '얼마를 투자하실 건가요?',
+        hint: '1,000원 이상 입력해 주세요',
+        accountName: '내 통장',
+        accountNumber: '1234',
+        accountBalance: 5000000, // 잔액 (예시)
+        onSubmit: _handleAmountSubmit,
+      ),
+    );
+    
+    // 입력 필드 초기화
+    _amountController.clear();
   }
 
   Widget _buildAccountConfirmCard(ChatItem item) {
@@ -1293,31 +1459,57 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
             ),
           ),
           const SizedBox(height: 16),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: item.isDisabled ? null : item.onConfirm,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: item.isDisabled
-                    ? Colors.grey.shade100
-                    : AppColors.primaryColor,
-                foregroundColor: item.isDisabled
-                    ? Colors.grey.shade400
-                    : Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 15),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: item.isDisabled ? null : () => _handleChangeAmount(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: item.isDisabled
+                        ? Colors.grey.shade300
+                        : Colors.grey.shade600,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    '금액 변경',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ),
-              child: const Text(
-                '확인했어요',
-                style: TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w500,
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                  onPressed: item.isDisabled ? null : item.onConfirm,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: item.isDisabled
+                        ? Colors.grey.shade100
+                        : AppColors.primaryColor,
+                    foregroundColor: item.isDisabled
+                        ? Colors.grey.shade400
+                        : Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 15),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    '확인했어요',
+                    style: TextStyle(
+                      fontSize: 15,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -1392,31 +1584,57 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
             ],
           ),
           const SizedBox(height: 18),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: item.isDisabled ? null : item.onSubmit,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: item.isDisabled
-                    ? Colors.grey.shade100
-                    : AppColors.primaryColor,
-                foregroundColor: item.isDisabled
-                    ? Colors.grey.shade400
-                    : Colors.white,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
+          Row(
+            children: [
+              Expanded(
+                child: TextButton(
+                  onPressed: item.isDisabled ? null : () => _handleChangeAmount(),
+                  style: TextButton.styleFrom(
+                    foregroundColor: item.isDisabled
+                        ? Colors.grey.shade300
+                        : Colors.grey.shade600,
+                    padding: const EdgeInsets.symmetric(vertical: 12),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    '금액 변경',
+                    style: TextStyle(
+                      fontSize: 14,
+                      fontWeight: FontWeight.w500,
+                    ),
+                  ),
                 ),
               ),
-              child: const Text(
-                '펀드 가입하기 🎉',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
+              const SizedBox(width: 10),
+              Expanded(
+                flex: 2,
+                child: ElevatedButton(
+                  onPressed: item.isDisabled ? null : item.onSubmit,
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: item.isDisabled
+                        ? Colors.grey.shade100
+                        : AppColors.primaryColor,
+                    foregroundColor: item.isDisabled
+                        ? Colors.grey.shade400
+                        : Colors.white,
+                    elevation: 0,
+                    padding: const EdgeInsets.symmetric(vertical: 16),
+                    shape: RoundedRectangleBorder(
+                      borderRadius: BorderRadius.circular(12),
+                    ),
+                  ),
+                  child: const Text(
+                    '펀드 가입하기 🎉',
+                    style: TextStyle(
+                      fontSize: 16,
+                      fontWeight: FontWeight.w600,
+                    ),
+                  ),
                 ),
               ),
-            ),
+            ],
           ),
         ],
       ),
@@ -1819,12 +2037,18 @@ class ChatItem {
   factory ChatItem.amountInput({
     required String question,
     String? hint,
+    String? accountName,
+    String? accountNumber,
+    int? accountBalance,
     required Function(int) onSubmit,
   }) {
     return ChatItem(
       type: ChatItemType.amountInput,
       question: question,
       hint: hint,
+      accountName: accountName,
+      accountNumber: accountNumber,
+      accountBalance: accountBalance,
       onAmountSubmit: onSubmit,
     );
   }
