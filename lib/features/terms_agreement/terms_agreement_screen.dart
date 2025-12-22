@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../home/constants/app_colors.dart';
 import '../subscription/fund_subscription_screen.dart';
+import '../fund_detail/pdf_viewer_screen.dart';
 
 class TermsAgreementScreen extends StatefulWidget {
   final String fundTitle;
@@ -138,130 +139,40 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
 
   void _showDocumentDetail(String documentType) {
     String title;
-    String content;
 
     switch (documentType) {
       case 'core':
         title = '핵심상품설명서';
-        content = '''
-[핵심상품설명서]
-
-1. 상품 개요
-본 펀드는 국내외 주식 및 채권에 분산 투자하여 안정적인 수익을 추구하는 혼합형 펀드입니다.
-
-2. 주요 투자 대상
-• 국내 주식: 40~60%
-• 해외 주식: 20~30%
-• 채권: 10~30%
-
-3. 투자 위험
-• 원금 손실 가능성이 있습니다.
-• 시장 상황에 따라 수익률이 변동될 수 있습니다.
-
-4. 수수료
-• 선취판매수수료: 없음
-• 환매수수료: 90일 미만 환매 시 이익금의 70%
-
-5. 기타 유의사항
-• 과거의 운용실적이 미래의 수익을 보장하지 않습니다.
-• 예금자보호법에 따라 보호되지 않습니다.
-''';
         break;
       case 'simple':
         title = '간이투자설명서';
-        content = '''
-[간이투자설명서]
-
-1. 펀드의 명칭
-${widget.fundTitle}
-
-2. 펀드의 종류
-혼합자산, 개방형, 추가형, 종류형
-
-3. 투자목적
-국내외 다양한 자산에 분산 투자하여 안정적인 투자수익을 추구합니다.
-
-4. 위험등급
-${widget.badge}
-
-5. 보수 및 수수료
-• 총보수: 연 0.5%
-• 판매보수: 연 0.3%
-• 운용보수: 연 0.15%
-
-6. 환매 방법
-• 영업일 15시 이전: 제3영업일 기준가격으로 환매
-• 영업일 15시 이후: 제4영업일 기준가격으로 환매
-''';
         break;
       case 'full':
         title = '투자설명서';
-        content = '''
-[투자설명서]
-
-제1장 총칙
-본 투자설명서는 투자자가 펀드에 가입하기 전에 반드시 읽어야 하는 문서입니다.
-
-제2장 펀드의 개요
-1. 펀드의 명칭: ${widget.fundTitle}
-2. 펀드의 종류: 혼합자산, 개방형, 추가형
-3. 운용기간: 별도 정함 없음
-
-제3장 투자목적 및 운용전략
-1. 투자목적
-국내외 주식, 채권 등에 분산 투자하여 안정적인 투자수익을 추구합니다.
-
-2. 운용전략
-시장 상황에 따라 주식과 채권의 비중을 탄력적으로 조절합니다.
-
-제4장 투자위험
-1. 시장위험: 주식시장, 채권시장 등의 가격 변동에 따른 위험
-2. 신용위험: 발행자의 재무상태 악화에 따른 위험
-3. 환율위험: 해외자산 투자 시 환율 변동에 따른 위험
-
-제5장 수수료 및 보수
-상세 내용은 핵심상품설명서를 참조해 주세요.
-''';
         break;
       case 'terms':
         title = '집합투자규약';
-        content = '''
-[집합투자규약 (약관)]
-
-제1조 (목적)
-이 규약은 투자자의 권익 보호와 펀드의 효율적인 운용을 위해 필요한 사항을 정함을 목적으로 합니다.
-
-제2조 (용어의 정의)
-• "수익자"란 수익증권을 보유한 자를 말합니다.
-• "집합투자업자"란 펀드를 운용하는 자를 말합니다.
-
-제3조 (수익자의 권리)
-1. 수익자는 언제든지 수익증권의 환매를 청구할 수 있습니다.
-2. 수익자는 수익자총회에 참석하여 의결권을 행사할 수 있습니다.
-
-제4조 (수익자의 의무)
-1. 수익자는 본 규약 및 관련 법규를 준수해야 합니다.
-2. 수익자는 정확한 개인정보를 제공해야 합니다.
-
-제5조 (분배금)
-1. 분배금은 회계기간 종료 후 수익자에게 지급됩니다.
-2. 분배금 지급방식은 현금 또는 재투자 중 선택할 수 있습니다.
-
-제6조 (규약의 변경)
-1. 규약 변경 시 수익자총회의 의결을 거쳐야 합니다.
-2. 단, 법령 개정에 따른 변경은 수익자총회 없이 가능합니다.
-''';
         break;
       default:
         title = '문서';
-        content = '내용을 불러올 수 없습니다.';
     }
 
-    showModalBottomSheet(
-      context: context,
-      isScrollControlled: true,
-      backgroundColor: Colors.transparent,
-      builder: (context) => _buildDocumentBottomSheet(title, content, documentType),
+    // PDF 뷰어 화면으로 이동
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PdfViewerScreen(
+          documentTitle: title,
+          documentType: documentType,
+          onDocumentViewed: () {
+            // 문서 확인 시 체크 처리
+            _markDocumentAsRead(documentType);
+          },
+          // TODO: 나중에 실제 PDF URL이나 경로를 전달
+          // documentUrl: 'https://example.com/pdfs/$documentType.pdf',
+          // documentPath: 'assets/pdfs/$documentType.pdf',
+        ),
+      ),
     );
   }
 
@@ -549,7 +460,11 @@ ${widget.badge}
       Future.delayed(const Duration(milliseconds: 300), () {
         if (mounted) {
           _addBotMessage(
-            ChatItem.textMessage('모든 서류를 확인하셨네요! 👏\n이제 아래 버튼을 눌러 다음 단계로 진행해 주세요.'),
+            ChatItem.cta(
+              text: '모든 서류를 확인하셨네요! 👏\n아래 버튼을 눌러 다음 단계로 진행해 주세요.',
+              buttonText: '모두 확인했어요 ✓',
+              onConfirm: _handleConfirm,
+            ),
           );
         }
       });
@@ -786,6 +701,8 @@ ${widget.badge}
         return _buildCardBubble(item);
       case ChatItemType.documents:
         return _buildDocumentsCard(item);
+      case ChatItemType.cta:
+        return _buildCtaBubble(item);
       default:
         return const SizedBox();
     }
@@ -812,6 +729,59 @@ ${widget.badge}
           height: 1.5,
           color: Colors.black87,
         ),
+      ),
+    );
+  }
+
+  Widget _buildCtaBubble(ChatItem item) {
+    return Container(
+      padding: const EdgeInsets.all(16),
+      decoration: BoxDecoration(
+        color: Colors.white,
+        borderRadius: BorderRadius.circular(20),
+        boxShadow: [
+          BoxShadow(
+            color: Colors.black.withOpacity(0.04),
+            blurRadius: 8,
+            offset: const Offset(0, 2),
+          ),
+        ],
+      ),
+      child: Column(
+        crossAxisAlignment: CrossAxisAlignment.start,
+        children: [
+          Text(
+            item.text ?? '',
+            style: const TextStyle(
+              fontSize: 15,
+              height: 1.5,
+              color: Colors.black87,
+            ),
+          ),
+          const SizedBox(height: 14),
+          SizedBox(
+            width: double.infinity,
+            child: ElevatedButton(
+              onPressed: item.onConfirm,
+              style: ElevatedButton.styleFrom(
+                backgroundColor: AppColors.primaryColor,
+                foregroundColor: Colors.white,
+                elevation: 0,
+                padding: const EdgeInsets.symmetric(vertical: 14),
+                shape: RoundedRectangleBorder(
+                  borderRadius: BorderRadius.circular(12),
+                ),
+              ),
+              child: Text(
+                item.buttonText ?? '다음으로',
+                style: const TextStyle(
+                  fontSize: 15,
+                  fontWeight: FontWeight.w600,
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
     );
   }
@@ -935,32 +905,6 @@ ${widget.badge}
             onTap: () => item.onDocumentTap!('terms'),
           ),
           const SizedBox(height: 20),
-          SizedBox(
-            width: double.infinity,
-            child: ElevatedButton(
-              onPressed: item.allChecked! ? item.onConfirm : null,
-              style: ElevatedButton.styleFrom(
-                backgroundColor: item.allChecked!
-                    ? AppColors.primaryColor
-                    : Colors.grey.shade200,
-                foregroundColor: item.allChecked!
-                    ? Colors.white
-                    : Colors.grey.shade400,
-                elevation: 0,
-                padding: const EdgeInsets.symmetric(vertical: 16),
-                shape: RoundedRectangleBorder(
-                  borderRadius: BorderRadius.circular(12),
-                ),
-              ),
-              child: Text(
-                item.allChecked! ? '모두 확인했어요 ✓' : '모든 서류를 확인해 주세요',
-                style: const TextStyle(
-                  fontSize: 15,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ),
-          ),
         ],
       ),
     );
@@ -1020,6 +964,7 @@ enum ChatItemType {
   user,
   card,
   documents,
+  cta,
 }
 
 class ChatItem {
@@ -1035,6 +980,7 @@ class ChatItem {
   final bool? checkedTerms;
   final VoidCallback? onConfirm;
   final bool? allChecked;
+  final String? buttonText;
 
   ChatItem({
     required this.type,
@@ -1049,6 +995,7 @@ class ChatItem {
     this.checkedTerms,
     this.onConfirm,
     this.allChecked,
+    this.buttonText,
   });
 
   factory ChatItem.userMessage(String text) {
@@ -1088,6 +1035,19 @@ class ChatItem {
       checkedTerms: checkedTerms,
       onConfirm: onConfirm,
       allChecked: allChecked,
+    );
+  }
+
+  factory ChatItem.cta({
+    required String text,
+    required String buttonText,
+    required VoidCallback onConfirm,
+  }) {
+    return ChatItem(
+      type: ChatItemType.cta,
+      text: text,
+      buttonText: buttonText,
+      onConfirm: onConfirm,
     );
   }
 }

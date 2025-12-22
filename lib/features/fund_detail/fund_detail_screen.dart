@@ -4,6 +4,7 @@ import '../home/constants/app_colors.dart';
 import '../subscription/fund_subscription_screen.dart';
 import '../investment_propensity/investment_propensity_screen.dart';
 import '../terms_agreement/terms_agreement_screen.dart';
+import 'pdf_viewer_screen.dart';
 
 class FundDetailScreen extends StatefulWidget {
   final String title;
@@ -635,17 +636,18 @@ class _FundDetailScreenState extends State<FundDetailScreen> {
       padding: const EdgeInsets.symmetric(vertical: 10),
       child: GestureDetector(
         onTap: () {
-          // 문서 열기
+          // PDF 뷰어 화면으로 이동
+          Navigator.pop(context); // 바텀시트 닫기
+          _openPdfViewer(title);
         },
         child: Row(
           children: [
-            Text(
-              '· ',
-              style: TextStyle(
-                fontSize: 15,
-                color: Colors.grey.shade600,
-              ),
+            Icon(
+              Icons.picture_as_pdf,
+              size: 18,
+              color: AppColors.primaryColor,
             ),
+            const SizedBox(width: 8),
             Text(
               title,
               style: TextStyle(
@@ -653,9 +655,49 @@ class _FundDetailScreenState extends State<FundDetailScreen> {
                 color: AppColors.primaryColor,
                 decoration: TextDecoration.underline,
                 decorationColor: AppColors.primaryColor,
+                fontWeight: FontWeight.w500,
               ),
             ),
+            const Spacer(),
+            Icon(
+              Icons.chevron_right,
+              size: 20,
+              color: Colors.grey.shade400,
+            ),
           ],
+        ),
+      ),
+    );
+  }
+
+  void _openPdfViewer(String documentTitle) {
+    // 문서 타입 매핑
+    String documentType = 'core';
+    switch (documentTitle) {
+      case '핵심상품설명서':
+        documentType = 'core';
+        break;
+      case '간이투자설명서':
+        documentType = 'simple';
+        break;
+      case '투자설명서':
+        documentType = 'full';
+        break;
+      case '집합투자규약':
+        documentType = 'terms';
+        break;
+    }
+
+    // TODO: 나중에 실제 PDF URL이나 경로를 전달
+    // 예: documentUrl: 'https://example.com/pdfs/$documentType.pdf'
+    Navigator.push(
+      context,
+      MaterialPageRoute(
+        builder: (context) => PdfViewerScreen(
+          documentTitle: documentTitle,
+          documentType: documentType,
+          // documentUrl: 'https://example.com/pdfs/$documentType.pdf', // 나중에 실제 URL 사용
+          // documentPath: 'assets/pdfs/$documentType.pdf', // 나중에 실제 경로 사용
         ),
       ),
     );
