@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
 import '../fund_management_screen.dart';
+import '../investment_tendency_info_screen.dart';
 
 class PortfolioStatusCard extends StatelessWidget {
   const PortfolioStatusCard({super.key});
@@ -35,8 +36,14 @@ class PortfolioStatusCard extends StatelessWidget {
             child: StatusItem(label: '관심', value: '2'),
           ),
           const VerticalDividerThin(),
-          const Expanded(
-            child: InvestTendency(),
+          Expanded(
+            child: InkWell(
+              onTap: () {
+                InvestmentTendencyInfoScreen.show(context);
+              },
+              borderRadius: BorderRadius.circular(8),
+              child: const InvestTendency(),
+            ),
           ),
         ],
       ),

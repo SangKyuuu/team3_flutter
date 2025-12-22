@@ -4,6 +4,7 @@ import 'package:google_fonts/google_fonts.dart';
 import 'menu_screen.dart';
 import 'widgets/common_widgets.dart';
 import 'widgets/home_main_content.dart';
+import 'fund_management_screen.dart';
 
 class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
@@ -52,7 +53,16 @@ class _HomeScreenState extends State<HomeScreen> {
         leadingWidth: 56,
         leading: Padding(
           padding: const EdgeInsets.only(left: 12, top: 8, bottom: 8),
-          child: AppIconButton(imagePath: 'assets/images/user.png'),
+          child: AppIconButton(
+            imagePath: 'assets/images/user.png',
+            onTap: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const FundManagementScreen(),
+                ),
+              );
+            },
+          ),
         ),
         actions: [
           Padding(

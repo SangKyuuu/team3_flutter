@@ -3,6 +3,7 @@ import 'package:flutter/scheduler.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'constants/app_colors.dart';
 import 'withdrawal_screen.dart';
+import 'investment_screen.dart';
 
 class FundDetailScreen extends StatefulWidget {
   const FundDetailScreen({
@@ -300,7 +301,7 @@ class _FundDetailScreenState extends State<FundDetailScreen> {
                   Expanded(
                     child: ElevatedButton(
                       onPressed: () {
-                        // 투자하기 로직
+                        InvestmentScreen.show(context);
                       },
                       style: ElevatedButton.styleFrom(
                         backgroundColor: AppColors.primaryColor,
@@ -420,7 +421,17 @@ class _FundChartState extends State<_FundChart> {
               dotData: FlDotData(
                 show: false,
               ),
-              belowBarData: BarAreaData(show: false),
+              belowBarData: BarAreaData(
+                show: true,
+                gradient: LinearGradient(
+                  colors: [
+                    lineColor.withOpacity(0.15),
+                    lineColor.withOpacity(0.0),
+                  ],
+                  begin: Alignment.topCenter,
+                  end: Alignment.bottomCenter,
+                ),
+              ),
             ),
           ],
           extraLinesData: ExtraLinesData(

@@ -1,24 +1,24 @@
 import 'package:flutter/material.dart';
 import 'constants/app_colors.dart';
-import 'withdrawal_confirmation_screen.dart';
+import 'investment_confirmation_screen.dart';
 
-class WithdrawalScreen extends StatefulWidget {
-  const WithdrawalScreen({super.key});
+class InvestmentScreen extends StatefulWidget {
+  const InvestmentScreen({super.key});
 
   static void show(BuildContext context) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const WithdrawalScreen(),
+      builder: (context) => const InvestmentScreen(),
     );
   }
 
   @override
-  State<WithdrawalScreen> createState() => _WithdrawalScreenState();
+  State<InvestmentScreen> createState() => _InvestmentScreenState();
 }
 
-class _WithdrawalScreenState extends State<WithdrawalScreen> {
+class _InvestmentScreenState extends State<InvestmentScreen> {
   final TextEditingController _amountController = TextEditingController();
   final String _availableBalance = '958'; // 사용 가능한 잔액
   final FocusNode _focusNode = FocusNode();
@@ -39,7 +39,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
     super.dispose();
   }
 
-  void _onWithdrawAllPressed() {
+  void _onInvestAllPressed() {
     setState(() {
       _amountController.text = _availableBalance;
     });
@@ -82,7 +82,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                     mainAxisAlignment: MainAxisAlignment.spaceBetween,
                     children: [
                       const Text(
-                        '얼마를 출금할까요?',
+                        '얼마를 투자할까요?',
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w700,
@@ -142,9 +142,9 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                     ),
                   ),
                   const Spacer(),
-                  // 최소 출금 안내
+                  // 최소 투자 안내
                   Text(
-                    '최소 100원부터 출금 할 수 있어요',
+                    '최소 100원부터 투자 할 수 있어요',
                     style: TextStyle(
                       fontSize: 14,
                       color: Colors.grey.shade600,
@@ -152,11 +152,11 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                     textAlign: TextAlign.center,
                   ),
                   const SizedBox(height: 12),
-                  // 모두 출금 옵션
+                  // 모두 투자 옵션
                   InkWell(
-                    onTap: _onWithdrawAllPressed,
+                    onTap: _onInvestAllPressed,
                     child: Text(
-                      '$_availableBalance원 모두 출금',
+                      '$_availableBalance원 모두 투자',
                       style: TextStyle(
                         fontSize: 14,
                         fontWeight: FontWeight.w500,
@@ -180,8 +180,8 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                 width: double.infinity,
                 child: ElevatedButton(
                   onPressed: _canProceed ? () {
-                    Navigator.of(context).pop(); // 출금 금액 입력 화면 닫기
-                    WithdrawalConfirmationScreen.show(context, _amountController.text);
+                    Navigator.of(context).pop(); // 현재 화면 닫기
+                    InvestmentConfirmationScreen.show(context, _amountController.text);
                   } : null,
                   style: ElevatedButton.styleFrom(
                     backgroundColor: _canProceed ? AppColors.primaryColor : Colors.grey.shade300,

@@ -1,5 +1,6 @@
 import 'package:flutter/material.dart';
 import '../constants/app_colors.dart';
+import '../customized_fund_search_screen.dart';
 
 class SearchBarCard extends StatelessWidget {
   const SearchBarCard({super.key});
@@ -42,7 +43,13 @@ class SearchBarCard extends StatelessWidget {
         Align(
           alignment: Alignment.centerRight,
           child: TextButton.icon(
-            onPressed: () {},
+            onPressed: () {
+              Navigator.of(context).push(
+                MaterialPageRoute(
+                  builder: (context) => const CustomizedFundSearchScreen(),
+                ),
+              );
+            },
             icon: const SizedBox.shrink(),
             label: Row(
               mainAxisSize: MainAxisSize.min,

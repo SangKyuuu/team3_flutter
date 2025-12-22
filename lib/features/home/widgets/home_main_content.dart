@@ -19,7 +19,6 @@ class _HomeMainContentState extends State<HomeMainContent> {
   final List<String> _categories = const [
     '판매량 best',
     '수익률 best',
-    '추천펀드',
     '신상품',
   ];
 
@@ -70,30 +69,6 @@ class _HomeMainContentState extends State<HomeMainContent> {
         badge: '높은위험',
         badge2: '공격투자형만 가입',
         yieldText: '4.9%',
-      ),
-    ],
-    // 추천펀드
-    [
-      FundData(
-        title: 'KB 밸런스 혼합형 펀드',
-        rankLabel: '1위',
-        badge: '추천',
-        badge2: '안정추구형이상 가입',
-        yieldText: '2.1%',
-      ),
-      FundData(
-        title: '신한 글로벌 리밸런싱 펀드',
-        rankLabel: '2위',
-        badge: '추천',
-        badge2: '안정투구형만 가입',
-        yieldText: '1.9%',
-      ),
-      FundData(
-        title: '하나 다자산 배분형 펀드',
-        rankLabel: '3위',
-        badge: '추천',
-        badge2: '안정추구형이상 가입',
-        yieldText: '1.7%',
       ),
     ],
     // 신상품
@@ -231,7 +206,7 @@ class LeftColumn extends StatelessWidget {
                 FundCard(
                   title: fund.title,
                   subtitle: fund.subtitle,
-                  rankLabel: (selectedCategory == 2 || selectedCategory == 3) ? '' : fund.rankLabel,
+                  rankLabel: selectedCategory == 2 ? '' : fund.rankLabel,
                   badge: fund.badge,
                   badge2: fund.badge2,
                   yieldText: fund.yieldText,

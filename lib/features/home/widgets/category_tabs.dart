@@ -15,22 +15,21 @@ class CategoryTabs extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
-    return SingleChildScrollView(
-      scrollDirection: Axis.horizontal,
-      child: Row(
-        children: List.generate(
-          categories.length,
-          (i) {
-            final bool selected = i == selectedIndex;
-            return Padding(
+    return Row(
+      children: List.generate(
+        categories.length,
+        (i) {
+          final bool selected = i == selectedIndex;
+          return Expanded(
+            child: Padding(
               padding: EdgeInsets.only(
-                left: i == 0 ? 0 : 7,
-                right: i == categories.length - 1 ? 0 : 7,
+                left: i == 0 ? 0 : 3.5,
+                right: i == categories.length - 1 ? 0 : 3.5,
               ),
               child: GestureDetector(
                 onTap: () => onTap(i),
                 child: Container(
-                  padding: const EdgeInsets.symmetric(horizontal: 18, vertical: 8),
+                  padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
                   constraints: const BoxConstraints(
                     minHeight: 36,
                   ),
@@ -52,14 +51,14 @@ class CategoryTabs extends StatelessWidget {
                       ),
                       textAlign: TextAlign.center,
                       softWrap: false,
-                      overflow: TextOverflow.visible,
+                      overflow: TextOverflow.ellipsis,
                     ),
                   ),
                 ),
               ),
-            );
-          },
-        ),
+            ),
+          );
+        },
       ),
     );
   }
