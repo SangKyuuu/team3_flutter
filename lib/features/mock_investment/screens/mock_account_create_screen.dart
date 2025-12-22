@@ -16,6 +16,8 @@ class _MockAccountCreateScreenState extends State<MockAccountCreateScreen> {
   final TextEditingController _amountController = TextEditingController();
   final List<ChatItem> _chatItems = [];
   bool _isTyping = false;
+  int? _selectedAmount; // 선택한 금액 저장용
+  String? _selectedPassword; // 입력한 비밀번호 저장용
 
   @override
   void initState() {
@@ -37,7 +39,7 @@ class _MockAccountCreateScreenState extends State<MockAccountCreateScreen> {
       description: '실제 자산에 영향 없이 자유롭게 연습할 수 있습니다.',
     ));
 
-    // 2. 투자 성향 연동 (MockApi 사용)
+    // 2. 투자 성향 연동
     String? riskType = await MockApi.getInvestmentType();
     await _addBotMessage(ChatItem.textMessage(
       '회원님의 투자 성향은 **${riskType ?? "분석 중"}**입니다.\n성향에 맞춰 초기 자본금을 설정해볼까요?',
@@ -51,27 +53,92 @@ class _MockAccountCreateScreenState extends State<MockAccountCreateScreen> {
     ));
   }
 
+  // 금액 입력 처리 (유효성 검사 추가)
   Future<void> _handleAmountSubmit(int amount) async {
+    // 유효성 검사 실패 시 (1,000원 미만 또는 1억 원 초과)
+    if (amount < 1000 || amount > 100000000) {
+      // 사용자가 입력한 잘못된 금액을 말풍선으로 표시
+      _addUserMessage('${_formatNumber(amount)}원');
+      _disableLastSelection();
+
+      // 컨트롤러 비우기
+      _amountController.clear();
+
+      // 봇의 에러 메시지 알림
+      await _addBotMessage(ChatItem.textMessage(
+        '죄송합니다. 초기 투자 금액은 **1,000원부터 1억 원**까지만 설정 가능합니다. 다시 입력해주세요.',
+      ));
+
+      // 다시 금액 입력창 띄우기 (비밀번호로 넘어가지 않고 여기서 멈춤)
+      await _addBotMessage(ChatItem.amountInput(
+        question: '초기 투자 금액을 입력해주세요.',
+        hint: '1,000원 ~ 100,000,000원',
+        onSubmit: _handleAmountSubmit,
+      ));
+
+      return; // 유효성 검사 실패 시 여기서 함수를 종료하여 아래 비밀번호 단계로 가지 못하게 함
+    }
+
+    // 유효성 검사 통과 시
     _addUserMessage('${_formatNumber(amount)}원');
     _disableLastSelection();
 
+    // 다음(비밀번호) 입력을 위해 컨트롤러를 비워줍니다.
+    _amountController.clear();
+
+    // 통과했을 때만 비밀번호 설정 단계로 이동
+    await _promptPassword(amount);
+  }
+
+  // 비밀번호 설정 요청 (새로 추가)
+  Future<void> _promptPassword(int amount) async {
+    await _addBotMessage(ChatItem.textMessage(
+        '보안을 위해 모의투자 계좌에서 사용할 **비밀번호 4자리**를 설정해주세요.'
+    ));
+
+    // 숫자 입력을 위해 amountInput을 재활용합니다.
+    await _addBotMessage(ChatItem.amountInput(
+      question: '비밀번호 4자리를 입력해주세요.',
+      hint: '비밀번호 4자리',
+      onSubmit: (pass) => _handlePasswordSubmit(amount, pass.toString()),
+    ));
+  }
+
+  // 비밀번호 입력 처리
+  Future<void> _handlePasswordSubmit(int amount, String password) async {
+    if (password.length != 4) {
+      _amountController.clear();
+      await _addBotMessage(ChatItem.textMessage('비밀번호는 반드시 **숫자 4자리**여야 합니다.'));
+      await _promptPassword(amount); // 다시 입력받기
+      return;
+    }
+
+    _addUserMessage('****'); // 보안상 별표 표시
+    _disableLastSelection();
+    _amountController.clear();
+
+    // 마지막 확인 카드 호출
     await _addBotMessage(ChatItem.confirmCard(
       title: '계좌를 개설하시겠습니까?',
-      description: '입력하신 금액으로 가상 계좌가 생성됩니다.',
+      description: '입력하신 ${_formatNumber(amount)}원과 비밀번호로 가상 계좌가 생성됩니다.',
       confirmText: '개설하기',
       cancelText: '취소',
-      onConfirm: () => _finalizeAccount(amount),
+      onConfirm: () => _finalizeAccount(amount, password),
       onCancel: () => Navigator.pop(context),
     ));
   }
 
-  Future<void> _finalizeAccount(int amount) async {
-    bool success = await MockApi.createMockAccount(amount);
+  // 최종 개설 처리
+  Future<void> _finalizeAccount(int amount, String password) async {
+    bool success = await MockApi.createMockAccount(amount, password);
+
     if (success) {
       await _addBotMessage(ChatItem.textMessage('개설 완료! 🎉 이제 대시보드로 이동합니다.'));
       await Future.delayed(const Duration(seconds: 1));
 
       if (mounted) Navigator.pushReplacementNamed(context, '/mock/dashboard');
+    } else {
+      await _addBotMessage(ChatItem.textMessage('계좌 생성 중 오류가 발생했습니다. 잠시 후 다시 시도해주세요.'));
     }
   }
 
@@ -255,7 +322,18 @@ class _MockAccountCreateScreenState extends State<MockAccountCreateScreen> {
             TextField(
               controller: _amountController,
               keyboardType: TextInputType.number,
-              decoration: InputDecoration(hintText: item.hint ?? '금액 입력', suffixText: '원', border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))),
+              // 비밀번호 입력 단계인지 힌트 텍스트 등으로 판별하여 처리 가능
+              obscureText: item.hint?.contains('비밀번호') ?? false,
+              inputFormatters: [
+                FilteringTextInputFormatter.digitsOnly,
+                // 비밀번호일 경우 4글자 제한
+                LengthLimitingTextInputFormatter(item.hint?.contains('비밀번호') == true ? 4 : 10),
+              ],
+              decoration: InputDecoration(
+                  hintText: item.hint ?? '금액 입력',
+                  suffixText: item.hint?.contains('비밀번호') == true ? '' : '원',
+                  border: OutlineInputBorder(borderRadius: BorderRadius.circular(12))
+              ),
             ),
             const SizedBox(height: 14),
             SizedBox(
