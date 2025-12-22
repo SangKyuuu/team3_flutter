@@ -13,7 +13,7 @@ class _HeroCarouselState extends State<HeroCarousel> {
   final PageController _controller = PageController();
   final List<String> _images = const [
     'assets/images/팝업1.png',
-    'assets/images/팝업2 (1).png',
+    'assets/images/슬라이드2.png',
     'assets/images/치이카와1.webp',
   ];
   final List<String> _labels = const ['팝업 1', '팝업 2', '팝업 3'];
@@ -145,14 +145,14 @@ class _HeroCarouselState extends State<HeroCarousel> {
                         Expanded(
                           flex: 2,
                           child: Padding(
-                            padding: const EdgeInsets.only(left: 0, top: 8.0, right: 8.0, bottom: 8.0),
+                            padding: const EdgeInsets.only(left: 0, top: 6.0, right: 8.0, bottom: 4.0),
                             child: Image.asset(
                               _images[index],
-                              height: 145,
-                              fit: BoxFit.contain,
+                              height: 160,
+                              fit: BoxFit.cover,
                               errorBuilder: (context, error, stackTrace) {
                                 return Container(
-                                  height: 140,
+                                  height: 160,
                                   color: Colors.grey.withOpacity(0.2),
                                   child: const Icon(
                                     Icons.image,
@@ -189,7 +189,7 @@ class _HeroCarouselState extends State<HeroCarousel> {
                                 child: const Icon(
                                   Icons.image,
                                   color: Colors.grey,
-                                  size: 40,
+                                  size: 36,
                                 ),
                               );
                             },
