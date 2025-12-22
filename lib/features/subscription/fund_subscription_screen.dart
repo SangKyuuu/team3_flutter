@@ -27,6 +27,7 @@ class FundSubscriptionScreen extends StatefulWidget {
 class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
   final ScrollController _scrollController = ScrollController();
   final TextEditingController _amountController = TextEditingController();
+  final FocusNode _amountFocusNode = FocusNode();
   final List<ChatItem> _chatItems = [];
   int _currentStep = 0;
   bool _isTyping = false;
@@ -54,6 +55,7 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
   void dispose() {
     _scrollController.dispose();
     _amountController.dispose();
+    _amountFocusNode.dispose();
     super.dispose();
   }
 
@@ -555,27 +557,33 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
           ),
           // 채팅 영역
           Expanded(
-            child: Builder(
-              builder: (context) {
-                final bottomInset = MediaQuery.of(context).padding.bottom;
-                const extraPadding = 28.0; // 기기 하단바와 겹치지 않게 추가 여백
-                return ListView.builder(
-                  controller: _scrollController,
-                  padding: EdgeInsets.fromLTRB(
-                    16,
-                    20,
-                    16,
-                    20 + bottomInset + extraPadding,
-                  ),
-                  itemCount: _chatItems.length + (_isTyping ? 1 : 0),
-                  itemBuilder: (context, index) {
-                    if (_isTyping && index == _chatItems.length) {
-                      return _buildTypingIndicator();
-                    }
-                    return _buildChatItem(_chatItems[index]);
-                  },
-                );
+            child: GestureDetector(
+              onTap: () {
+                // 화면 터치 시 키패드 닫기
+                FocusScope.of(context).unfocus();
               },
+              child: Builder(
+                builder: (context) {
+                  final bottomInset = MediaQuery.of(context).padding.bottom;
+                  const extraPadding = 60.0; // 기기 하단바와 겹치지 않게 추가 여백 (28 -> 60으로 증가)
+                  return ListView.builder(
+                    controller: _scrollController,
+                    padding: EdgeInsets.fromLTRB(
+                      16,
+                      20,
+                      16,
+                      20 + bottomInset + extraPadding,
+                    ),
+                    itemCount: _chatItems.length + (_isTyping ? 1 : 0),
+                    itemBuilder: (context, index) {
+                      if (_isTyping && index == _chatItems.length) {
+                        return _buildTypingIndicator();
+                      }
+                      return _buildChatItem(_chatItems[index]);
+                    },
+                  );
+                },
+              ),
             ),
           ),
         ],
@@ -1230,6 +1238,7 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
               ),
               child: TextField(
                 controller: _amountController,
+                focusNode: _amountFocusNode,
                 keyboardType: TextInputType.number,
                 inputFormatters: [
                   FilteringTextInputFormatter.digitsOnly,
