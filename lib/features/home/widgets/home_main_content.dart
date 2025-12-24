@@ -7,6 +7,7 @@ import 'search_bar_card.dart';
 import 'category_tabs.dart';
 import 'fund_card.dart';
 import 'common_widgets.dart';
+import '../../../data/service/fund_api.dart';
 
 class HomeMainContent extends StatefulWidget {
   const HomeMainContent({super.key});
@@ -19,86 +20,38 @@ class _HomeMainContentState extends State<HomeMainContent> {
   final List<String> _categories = const [
     '판매량 best',
     '수익률 best',
-    '신상품',
   ];
 
-  final List<List<FundData>> _fundsByCategory = const [
-    // 판매량 best
-    [
-      FundData(
-        title: '신한 초단기채 증권투자신탁(채권)',
-        rankLabel: '1위',
-        badge: '낮은위험',
-        badge2: '안정추구형이상 가입',
-        yieldText: '3.2%',
-      ),
-      FundData(
-        title: 'KB 국채안정형 펀드',
-        rankLabel: '2위',
-        badge: '낮은위험',
-        badge2: '안정추구형이상 가입',
-        yieldText: '2.8%',
-      ),
-      FundData(
-        title: '하나 단기채권형 펀드',
-        rankLabel: '3위',
-        badge: '높은위험',
-        badge2: '공격투자형만 가입',
-        yieldText: '2.5%',
-      ),
-    ],
-    // 수익률 best
-    [
-      FundData(
-        title: '미국 나스닥 100 주식형 펀드',
-        rankLabel: '1위',
-        badge: '높은위험',
-        badge2: '공격투자형만 가입',
-        yieldText: '5.8%',
-      ),
-      FundData(
-        title: '글로벌 테크 주식형 펀드',
-        rankLabel: '2위',
-        badge: '높은위험',
-        badge2: '공격투자형만 가입',
-        yieldText: '5.2%',
-      ),
-      FundData(
-        title: '중국 A주 혼합형 펀드',
-        rankLabel: '3위',
-        badge: '높은위험',
-        badge2: '공격투자형만 가입',
-        yieldText: '4.9%',
-      ),
-    ],
-    // 신상품
-    [
-      FundData(
-        title: 'KB ESG 리더스 펀드',
-        rankLabel: '1위',
-        badge: 'NEW',
-        badge2: '안정추구형이상 가입',
-        yieldText: '—',
-      ),
-      FundData(
-        title: '신한 메타버스 테마 펀드',
-        rankLabel: '2위',
-        badge: 'NEW',
-        badge2: '공격투자형만 가입',
-        yieldText: '—',
-      ),
-      FundData(
-        title: '하나 디지털 자산 펀드',
-        rankLabel: '3위',
-        badge: 'NEW',
-        badge2: '공격투자형만 가입',
-        yieldText: '—',
-      ),
-    ],
-  ];
+  // 하드코딩된 데이터 대신 상태 변수로 변경
+  List<List<FundData>> _fundsByCategory = [[], []];
+  bool _isLoading = true;
 
   int _selectedCategory = 0;
   bool _showChatBot = true;
+
+  @override
+  void initState() {
+    super.initState();
+    _loadFunds();
+  }
+
+  Future<void> _loadFunds() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      // 각 카테고리별로 개별 호출
+      final salesFunds = await FundApi.getFundsByCategory('sales');
+      final yieldFunds = await FundApi.getFundsByCategory('yield');
+      
+      setState(() {
+        _fundsByCategory = [salesFunds, yieldFunds];
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('펀드 로딩 오류: $e');
+      setState(() => _isLoading = false);
+    }
+  }
 
   void _onCategoryTap(int index) {
     setState(() => _selectedCategory = index);
@@ -122,6 +75,7 @@ class _HomeMainContentState extends State<HomeMainContent> {
               selectedCategory: _selectedCategory,
               onCategoryTap: _onCategoryTap,
               fundsList: funds,
+              isLoading: _isLoading,
             );
             final Widget right = RightColumn(isWide: isWide);
 
@@ -174,6 +128,7 @@ class LeftColumn extends StatelessWidget {
     required this.selectedCategory,
     required this.onCategoryTap,
     required this.fundsList,
+    this.isLoading = false,
   });
 
   final bool isWide;
@@ -181,6 +136,7 @@ class LeftColumn extends StatelessWidget {
   final int selectedCategory;
   final ValueChanged<int> onCategoryTap;
   final List<FundData> fundsList;
+  final bool isLoading;
 
   static const double filterToCardSpacing = 20.0;
 
@@ -201,26 +157,40 @@ class LeftColumn extends StatelessWidget {
           onTap: onCategoryTap,
         ),
         SizedBox(height: filterToCardSpacing),
-        ...fundsList.map((fund) => Column(
-              children: [
-                FundCard(
-                  title: fund.title,
-                  subtitle: fund.subtitle,
-                  rankLabel: selectedCategory == 2 ? '' : fund.rankLabel,
-                  badge: fund.badge,
-                  badge2: fund.badge2,
-                  yieldText: fund.yieldText,
-                ),
-                const SizedBox(height: 12),
-              ],
-            )),
+        // 로딩 중일 때
+        if (isLoading)
+          const Padding(
+            padding: EdgeInsets.all(40.0),
+            child: Center(child: CircularProgressIndicator()),
+          )
+        // 데이터가 없을 때
+        else if (fundsList.isEmpty)
+          const Padding(
+            padding: EdgeInsets.all(40.0),
+            child: Center(child: Text('펀드 목록이 없습니다.')),
+          )
+        // 데이터 표시 (최대 3개만)
+        else
+          ...fundsList.take(3).map((fund) => Column(
+                children: [
+                  FundCard(
+                    title: fund.title,
+                    subtitle: fund.subtitle,
+                    rankLabel: fund.rankLabel,
+                    badge: fund.badge,
+                    badge2: fund.badge2,
+                    yieldText: fund.yieldText,
+                  ),
+                  const SizedBox(height: 12),
+                ],
+              )),
         const SizedBox(height: 12),
         SizedBox(
           height: 44,
           child: Center(
             child: OutlinedButton(
               style: OutlinedButton.styleFrom(
-                foregroundColor: AppColors.primaryColor,
+                foregroundColor: Colors.black,
                 side: BorderSide.none,
                 shape: RoundedRectangleBorder(
                   borderRadius: BorderRadius.circular(10),

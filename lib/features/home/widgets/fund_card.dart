@@ -140,16 +140,6 @@ class FundCard extends StatelessWidget {
                     fontSize: 15,
                   ),
                 ),
-                if (subtitle != null) ...[
-                  const SizedBox(height: 4),
-                  Text(
-                    subtitle!,
-                    style: TextStyle(
-                      color: Colors.grey.shade600,
-                      fontSize: 12,
-                    ),
-                  ),
-                ],
               ],
             ),
           ),
