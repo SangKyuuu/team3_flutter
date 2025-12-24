@@ -3,6 +3,7 @@ import '../home/constants/app_colors.dart';
 import '../subscription/widgets/password_input_dialog.dart';
 import '../subscription/services/signature_service.dart';
 import '../terms_agreement/terms_agreement_screen.dart';
+import '../../data/service/risk_test_api.dart';
 
 class InvestmentPropensityScreen extends StatefulWidget {
   final VoidCallback? onComplete;
@@ -37,7 +38,107 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
   @override
   void initState() {
     super.initState();
-    _startSurvey();
+    _checkAndStartSurvey();
+  }
+
+  /// 서버에 오늘 조사 완료 여부 확인 후 설문 시작 또는 기존 결과 표시
+  /// 
+  /// TODO: 백엔드 API 구현 후 아래 주석 해제하고 실제 호출
+  Future<void> _checkAndStartSurvey() async {
+    // TODO: 백엔드 API 구현 후 아래 코드 활성화
+    /*
+    try {
+      // TODO: 실제 로그인된 사용자 정보 가져오기
+      // 예: AuthApi.me() 또는 사용자 정보 저장소에서 가져오기
+      // final userInfo = await AuthApi.getUserInfo();
+      // final custNo = userInfo['custNo'];
+      // final userId = userInfo['userId'];
+      
+      // 임시로 테스트용 값 사용 (실제 구현 시 위의 코드로 교체)
+      final int custNo = 1; // TODO: 실제 고객 번호 사용
+      final String? userId = null; // TODO: 실제 사용자 ID 사용
+      
+      // 서버에 오늘 조사했는지 확인 요청
+      final result = await RiskTestApi.checkToday(
+        custNo: custNo,
+        userId: userId,
+      );
+      
+      final hasCompletedToday = result['hasCompletedToday'] as bool;
+      final latestResult = result['latestResult'] as Map<String, dynamic>?;
+      
+      if (hasCompletedToday && latestResult != null) {
+        // 오늘 이미 조사 완료한 경우 - 기존 결과 표시
+        await _showExistingResult(latestResult);
+        return;
+      }
+      
+      // 조사 가능한 경우 설문 시작
+      await _startSurvey();
+    } catch (e) {
+      // API 에러 발생 시에도 설문 진행 (에러 처리)
+      print('투자성향 조사 확인 중 에러 발생: $e');
+      await _startSurvey();
+    }
+    */
+    
+    // 임시: 항상 설문 시작 (백엔드 API 구현 전까지)
+    await _startSurvey();
+  }
+
+  /// 기존 조사 결과 표시 (오늘 이미 완료한 경우)
+  Future<void> _showExistingResult(Map<String, dynamic> latestResult) async {
+    final riskType = latestResult['riskType'] as String? ?? '';
+    final totalScore = latestResult['totalScore'] as int? ?? 0;
+    
+    // 기존 결과에 맞는 설명 가져오기
+    _setResultDescription(riskType);
+    _resultType = riskType;
+    
+    await _addBotMessage(
+      ChatItem.textMessage('오늘은 이미 투자성향 조사를 완료하셨어요! 📊'),
+    );
+    
+    await Future.delayed(const Duration(milliseconds: 500));
+    
+    // 기존 결과 카드 표시
+    await _addBotMessage(
+      ChatItem.resultCard(
+        resultType: _resultType!,
+        description: _resultDescription!,
+        percentage: _resultPercentage!,
+        onConfirm: _handleResultConfirm,
+      ),
+    );
+  }
+
+  /// 투자 성향에 따른 설명 설정
+  void _setResultDescription(String riskType) {
+    switch (riskType) {
+      case '안정형':
+        _resultDescription = '안전한 투자를 선호해요.\n원금 보존이 가장 중요하고,\n낮은 수익률도 괜찮아요.\n\n추천 상품: 예금, 적금, MMF';
+        _resultPercentage = 25;
+        break;
+      case '안정추구형':
+        _resultDescription = '안정적인 수익을 원해요.\n약간의 손실은 감수할 수 있지만\n큰 위험은 피하고 싶어요.\n\n추천 상품: 채권형 펀드, 혼합형 펀드';
+        _resultPercentage = 30;
+        break;
+      case '위험중립형':
+        _resultDescription = '적당한 위험을 감수해요.\n수익과 손실의 균형을\n중요하게 생각해요.\n\n추천 상품: 혼합형 펀드, 배당주 펀드';
+        _resultPercentage = 24;
+        break;
+      case '적극투자형':
+        _resultDescription = '높은 수익을 추구해요.\n상당한 손실도 감수할 수 있고\n적극적으로 투자해요.\n\n추천 상품: 주식형 펀드, 해외 펀드';
+        _resultPercentage = 15;
+        break;
+      case '공격투자형':
+        _resultDescription = '최대 수익을 추구해요.\n큰 손실도 감수할 준비가 되어있고\n공격적으로 투자해요.\n\n추천 상품: 레버리지 펀드, 파생상품';
+        _resultPercentage = 6;
+        break;
+      default:
+        _resultDescription = '투자성향 분석 결과입니다.';
+        _resultPercentage = 0;
+    }
   }
 
   @override
@@ -280,26 +381,33 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
     await nextQuestion();
   }
 
+  // 총점 저장용 변수
+  int _totalScore = 0;
+
   Future<void> _showResult() async {
     // 총점 계산 (최소 7점 ~ 최대 34점)
-    int totalScore = _scores.fold(0, (sum, score) => sum + score);
-    
+    _totalScore = _scores.fold<int>(
+      0,
+      (sum, score) => sum + score,
+    );
+
+
     // 결과 유형 결정 (5가지 유형이 골고루 나오도록 조정)
     // 7~12점: 안정형, 13~17점: 안정추구형, 18~22점: 위험중립형
     // 23~27점: 적극투자형, 28점 이상: 공격투자형
-    if (totalScore <= 12) {
+    if (_totalScore <= 12) {
       _resultType = '안정형';
       _resultDescription = '안전한 투자를 선호해요.\n원금 보존이 가장 중요하고,\n낮은 수익률도 괜찮아요.\n\n추천 상품: 예금, 적금, MMF';
       _resultPercentage = 25;
-    } else if (totalScore <= 17) {
+    } else if (_totalScore <= 17) {
       _resultType = '안정추구형';
       _resultDescription = '안정적인 수익을 원해요.\n약간의 손실은 감수할 수 있지만\n큰 위험은 피하고 싶어요.\n\n추천 상품: 채권형 펀드, 혼합형 펀드';
       _resultPercentage = 30;
-    } else if (totalScore <= 22) {
+    } else if (_totalScore <= 22) {
       _resultType = '위험중립형';
       _resultDescription = '적당한 위험을 감수해요.\n수익과 손실의 균형을\n중요하게 생각해요.\n\n추천 상품: 혼합형 펀드, 배당주 펀드';
       _resultPercentage = 24;
-    } else if (totalScore <= 27) {
+    } else if (_totalScore <= 27) {
       _resultType = '적극투자형';
       _resultDescription = '높은 수익을 추구해요.\n상당한 손실도 감수할 수 있고\n적극적으로 투자해요.\n\n추천 상품: 주식형 펀드, 해외 펀드';
       _resultPercentage = 15;
@@ -364,6 +472,34 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
       await _addBotMessage(
         ChatItem.textMessage('전자서명이 완료되었어요! ✍️'),
       );
+      
+      // TODO: 백엔드 API 구현 후 아래 주석 해제하고 실제 저장
+      /*
+      // 투자성향 조사 결과를 서버에 저장
+      try {
+        // TODO: 실제 로그인된 사용자 정보 가져오기
+        // 예: AuthApi.me() 또는 사용자 정보 저장소에서 가져오기
+        // final userInfo = await AuthApi.getUserInfo();
+        // final custNo = userInfo['custNo'];
+        // final userId = userInfo['userId'];
+        
+        // 임시로 테스트용 값 사용 (실제 구현 시 위의 코드로 교체)
+        final int custNo = 1; // TODO: 실제 고객 번호 사용
+        final String? userId = null; // TODO: 실제 사용자 ID 사용
+        
+        if (_resultType != null) {
+          await RiskTestApi.saveTestResult(
+            custNo: custNo,
+            userId: userId,
+            totalScore: _totalScore,
+            riskType: _resultType!,
+          );
+        }
+      } catch (e) {
+        // DB 저장 실패 시에도 계속 진행 (에러 로깅만)
+        print('투자성향 조사 결과 저장 실패: $e');
+      }
+      */
       
       await Future.delayed(const Duration(milliseconds: 800));
       
