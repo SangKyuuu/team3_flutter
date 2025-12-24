@@ -5,8 +5,8 @@ class ApiClient {
   static final Dio dio = Dio(
     BaseOptions(
       baseUrl: 'http://10.0.2.2:8080/bnk', // 🔥 서버 주소
-      connectTimeout: const Duration(seconds: 5),
-      receiveTimeout: const Duration(seconds: 5),
+      connectTimeout: const Duration(seconds: 15), // 타임아웃 시간 증가
+      receiveTimeout: const Duration(seconds: 15), // 타임아웃 시간 증가
       headers: {
         'Content-Type': 'application/json',
       },
