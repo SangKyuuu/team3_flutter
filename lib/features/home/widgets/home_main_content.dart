@@ -1,6 +1,7 @@
 import 'package:flutter/material.dart';
 import '../models/fund_data.dart';
 import '../constants/app_colors.dart';
+import '../fund_list_screen.dart';
 import 'hero_carousel.dart';
 import 'portfolio_status_card.dart';
 import 'search_bar_card.dart';
@@ -122,6 +123,7 @@ class _HomeMainContentState extends State<HomeMainContent> {
               selectedCategory: _selectedCategory,
               onCategoryTap: _onCategoryTap,
               fundsList: funds,
+              selectedCategoryTitle: _categories[_selectedCategory],
             );
             final Widget right = RightColumn(isWide: isWide);
 
@@ -174,6 +176,7 @@ class LeftColumn extends StatelessWidget {
     required this.selectedCategory,
     required this.onCategoryTap,
     required this.fundsList,
+    required this.selectedCategoryTitle,
   });
 
   final bool isWide;
@@ -181,6 +184,7 @@ class LeftColumn extends StatelessWidget {
   final int selectedCategory;
   final ValueChanged<int> onCategoryTap;
   final List<FundData> fundsList;
+  final String selectedCategoryTitle;
 
   static const double filterToCardSpacing = 20.0;
 
@@ -226,7 +230,17 @@ class LeftColumn extends StatelessWidget {
                   borderRadius: BorderRadius.circular(10),
                 ),
               ),
-              onPressed: () {},
+              onPressed: () {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => FundListScreen(
+                      categoryTitle: selectedCategoryTitle,
+                      funds: fundsList,
+                    ),
+                  ),
+                );
+              },
               child: const Text('더보기  >'),
             ),
           ),
