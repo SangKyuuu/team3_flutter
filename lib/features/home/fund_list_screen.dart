@@ -3,10 +3,11 @@ import 'constants/app_colors.dart';
 import 'models/fund_data.dart';
 import 'widgets/fund_card.dart';
 import 'widgets/category_tabs.dart';
+import '../../data/service/fund_api.dart';
 
 class FundListScreen extends StatefulWidget {
   final String categoryTitle;
-  final List<FundData> funds;
+  final List<FundData> funds; // 메인 화면에서 전달받은 초기 데이터
 
   const FundListScreen({
     super.key,
@@ -24,7 +25,15 @@ class _FundListScreenState extends State<FundListScreen> {
     '수익률 best',
   ];
 
+  // 카테고리와 API 카테고리 매핑
+  static const Map<String, String> _categoryToApi = {
+    '판매량 best': 'sales',
+    '수익률 best': 'yield',
+  };
+
   late int _selectedCategoryIndex;
+  List<FundData> _funds = [];
+  bool _isLoading = false;
 
   @override
   void initState() {
@@ -38,140 +47,52 @@ class _FundListScreenState extends State<FundListScreen> {
     if (_selectedCategoryIndex == -1) {
       _selectedCategoryIndex = 0; // 기본값
     }
+    
+    // 초기 데이터는 메인 화면에서 전달받은 데이터 사용
+    _funds = widget.funds;
+    
+    // 초기 데이터가 비어있으면 API 호출
+    if (_funds.isEmpty) {
+      _loadFunds();
+    }
   }
 
-  // 카테고리별 전체 펀드 데이터 (메인 페이지 데이터 + 추가 데이터)
-  static List<FundData> getAllFundsForCategory(String category) {
-    switch (category) {
-      case '판매량 best':
-        return const [
-          FundData(
-            title: '신한 초단기채 증권투자신탁(채권)',
-            rankLabel: '1위',
-            badge: '낮은위험',
-            badge2: '안정추구형이상 가입',
-            yieldText: '3.2%',
-          ),
-          FundData(
-            title: 'KB 국채안정형 펀드',
-            rankLabel: '2위',
-            badge: '낮은위험',
-            badge2: '안정추구형이상 가입',
-            yieldText: '2.8%',
-          ),
-          FundData(
-            title: '하나 단기채권형 펀드',
-            rankLabel: '3위',
-            badge: '높은위험',
-            badge2: '공격투자형만 가입',
-            yieldText: '2.5%',
-          ),
-          FundData(
-            title: 'NH-Amundi 단기채권 펀드',
-            rankLabel: '4위',
-            badge: '낮은위험',
-            badge2: '안정추구형이상 가입',
-            yieldText: '2.3%',
-          ),
-          FundData(
-            title: '미래에셋 단기채권형 펀드',
-            rankLabel: '5위',
-            badge: '낮은위험',
-            badge2: '안정추구형이상 가입',
-            yieldText: '2.1%',
-          ),
-        ];
-      case '수익률 best':
-        return const [
-          FundData(
-            title: '미국 나스닥 100 주식형 펀드',
-            rankLabel: '1위',
-            badge: '높은위험',
-            badge2: '공격투자형만 가입',
-            yieldText: '5.8%',
-          ),
-          FundData(
-            title: '글로벌 테크 주식형 펀드',
-            rankLabel: '2위',
-            badge: '높은위험',
-            badge2: '공격투자형만 가입',
-            yieldText: '5.2%',
-          ),
-          FundData(
-            title: '중국 A주 혼합형 펀드',
-            rankLabel: '3위',
-            badge: '높은위험',
-            badge2: '공격투자형만 가입',
-            yieldText: '4.9%',
-          ),
-          FundData(
-            title: 'KODEX 미국S&P500TR',
-            rankLabel: '4위',
-            badge: '높은위험',
-            badge2: '공격투자형만 가입',
-            yieldText: '4.7%',
-          ),
-          FundData(
-            title: 'TIGER 미국나스닥100',
-            rankLabel: '5위',
-            badge: '높은위험',
-            badge2: '공격투자형만 가입',
-            yieldText: '4.5%',
-          ),
-        ];
-      case '신상품':
-        return const [
-          FundData(
-            title: 'KB ESG 리더스 펀드',
-            rankLabel: '1위',
-            badge: 'NEW',
-            badge2: '안정추구형이상 가입',
-            yieldText: '—',
-          ),
-          FundData(
-            title: '신한 메타버스 테마 펀드',
-            rankLabel: '2위',
-            badge: 'NEW',
-            badge2: '공격투자형만 가입',
-            yieldText: '—',
-          ),
-          FundData(
-            title: '하나 디지털 자산 펀드',
-            rankLabel: '3위',
-            badge: 'NEW',
-            badge2: '공격투자형만 가입',
-            yieldText: '—',
-          ),
-          FundData(
-            title: '미래에셋 AI 테마 펀드',
-            rankLabel: '4위',
-            badge: 'NEW',
-            badge2: '적극투자형이상 가입',
-            yieldText: '—',
-          ),
-          FundData(
-            title: 'NH-Amundi 바이오 헬스케어 펀드',
-            rankLabel: '5위',
-            badge: 'NEW',
-            badge2: '적극투자형이상 가입',
-            yieldText: '—',
-          ),
-        ];
-      default:
-        return [];
+  /// 카테고리별 펀드 목록을 API에서 가져오기
+  Future<void> _loadFunds() async {
+    setState(() => _isLoading = true);
+    
+    try {
+      final selectedCategory = _categories[_selectedCategoryIndex];
+      final apiCategory = _categoryToApi[selectedCategory] ?? 'sales';
+      
+      final funds = await FundApi.getFundsByCategory(apiCategory);
+      
+      setState(() {
+        _funds = funds;
+        _isLoading = false;
+      });
+    } catch (e) {
+      print('펀드 목록 로딩 오류: $e');
+      setState(() {
+        _isLoading = false;
+        // 에러 발생 시 빈 리스트로 설정
+        _funds = [];
+      });
     }
   }
 
   void _onCategoryTap(int index) {
-    setState(() {
-      _selectedCategoryIndex = index;
-    });
+    if (_selectedCategoryIndex != index) {
+      setState(() {
+        _selectedCategoryIndex = index;
+      });
+      // 카테고리 변경 시 API 호출
+      _loadFunds();
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    final selectedCategory = _categories[_selectedCategoryIndex];
-    final allFunds = getAllFundsForCategory(selectedCategory);
     final showRank = true; // 모든 카테고리가 순위를 표시
 
     return Scaffold(
@@ -207,24 +128,34 @@ class _FundListScreenState extends State<FundListScreen> {
           ),
           // 펀드 목록
           Expanded(
-            child: ListView.builder(
-              padding: const EdgeInsets.all(16),
-              itemCount: allFunds.length,
-              itemBuilder: (context, index) {
-                final fund = allFunds[index];
-                return Padding(
-                  padding: const EdgeInsets.only(bottom: 12),
-                  child: FundCard(
-                    title: fund.title,
-                    subtitle: fund.subtitle,
-                    rankLabel: showRank ? fund.rankLabel : '',
-                    badge: fund.badge,
-                    badge2: fund.badge2,
-                    yieldText: fund.yieldText,
-                  ),
-                );
-              },
-            ),
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator())
+                : _funds.isEmpty
+                    ? const Center(
+                        child: Padding(
+                          padding: EdgeInsets.all(40.0),
+                          child: Text('펀드 목록이 없습니다.'),
+                        ),
+                      )
+                    : ListView.builder(
+                        padding: const EdgeInsets.all(16),
+                        itemCount: _funds.length,
+                        itemBuilder: (context, index) {
+                          final fund = _funds[index];
+                          return Padding(
+                            padding: const EdgeInsets.only(bottom: 12),
+                            child: FundCard(
+                              title: fund.title,
+                              subtitle: fund.subtitle,
+                              rankLabel: showRank ? fund.rankLabel : '',
+                              badge: fund.badge,
+                              badge2: fund.badge2,
+                              yieldText: fund.yieldText,
+                              showDetailedView: true, // 더보기 화면에서는 상세 뷰 표시
+                            ),
+                          );
+                        },
+                      ),
           ),
         ],
       ),

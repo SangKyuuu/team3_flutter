@@ -40,6 +40,7 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
   String? _weeklyDay; // 매주 선택 시 요일
   int? _monthlyDay; // 매월 선택 시 일자
   int? _investmentAmount;
+  int? _currentAccountBalance; // 현재 계좌 잔액
   bool _isCompleted = false;
   
   // 전자서명 기록
@@ -282,13 +283,15 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
       setState(() => _investmentType = '한 번만 투자하기');
       await _addBotMessage(ChatItem.textMessage('좋아요! 원하실 때 추가 투자도 가능해요 😊'));
 
+      final accountBalance = 5000000; // 잔액 (예시)
+      _currentAccountBalance = accountBalance;
       await _addBotMessage(
         ChatItem.amountInput(
           question: '얼마를 투자하실 건가요?',
-          hint: '1,000원 이상 입력해 주세요',
+          hint: '1,000원 이상, 잔액 이하로 입력해 주세요',
           accountName: '내 통장',
           accountNumber: '1234',
-          accountBalance: 5000000, // 잔액 (예시)
+          accountBalance: accountBalance,
           onSubmit: _handleAmountSubmit,
         ),
       );
@@ -339,13 +342,15 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
   Future<void> _handleScheduleComplete(String scheduleText) async {
     await _addBotMessage(ChatItem.textMessage('$scheduleText로 자동이체 하시는군요! 알겠어요 📅'));
 
+    final accountBalance = 5000000; // 잔액 (예시)
+    _currentAccountBalance = accountBalance;
     await _addBotMessage(
       ChatItem.amountInput(
         question: '얼마를 투자하실 건가요?',
-        hint: '1,000원 이상 입력해 주세요',
+        hint: '1,000원 이상, 잔액 이하로 입력해 주세요',
         accountName: '내 통장',
         accountNumber: '1234',
-        accountBalance: 5000000, // 잔액 (예시)
+        accountBalance: accountBalance,
         onSubmit: _handleAmountSubmit,
       ),
     );
@@ -353,6 +358,29 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
   }
 
   Future<void> _handleAmountSubmit(int amount) async {
+    // 잔액 검증 (이중 체크)
+    if (_currentAccountBalance != null && amount > _currentAccountBalance!) {
+      await _addBotMessage(
+        ChatItem.textMessage(
+          '출금 계좌 잔액(${_formatNumber(_currentAccountBalance!)}원)보다 많은 금액은 투자할 수 없어요.\n다시 입력해 주세요 💰',
+        ),
+      );
+      // 금액 입력 카드 다시 표시
+      await _addBotMessage(
+        ChatItem.amountInput(
+          question: '얼마를 투자하실 건가요?',
+          hint: '1,000원 이상, 잔액 이하로 입력해 주세요',
+          accountName: '내 통장',
+          accountNumber: '1234',
+          accountBalance: _currentAccountBalance,
+          onSubmit: _handleAmountSubmit,
+        ),
+      );
+      // 입력 필드 초기화
+      _amountController.clear();
+      return;
+    }
+
     _addUserMessage('${_formatNumber(amount)}원');
     setState(() => _investmentAmount = amount);
     _disableLastSelection();
@@ -1272,6 +1300,22 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
                   final text = _amountController.text.replaceAll(',', '');
                   final amount = int.tryParse(text);
                   if (amount != null && amount >= 1000) {
+                    // 잔액 검증
+                    if (item.accountBalance != null && amount > item.accountBalance!) {
+                      // 잔액 초과 시 에러 메시지 표시
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(
+                            '출금 계좌 잔액(${_formatNumber(item.accountBalance!)}원)보다 많은 금액은 투자할 수 없어요.',
+                          ),
+                          backgroundColor: Colors.red,
+                          duration: const Duration(seconds: 3),
+                        ),
+                      );
+                      return;
+                    }
+                    // 현재 잔액 저장
+                    _currentAccountBalance = item.accountBalance;
                     item.onAmountSubmit!(amount);
                   }
                 },
@@ -1336,13 +1380,14 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
     );
     
     // 바로 투자 금액 입력 카드 표시
+    final accountBalance = _currentAccountBalance ?? 5000000;
     await _addBotMessage(
       ChatItem.amountInput(
         question: '얼마를 투자하실 건가요?',
-        hint: '1,000원 이상 입력해 주세요',
+        hint: '1,000원 이상, 잔액 이하로 입력해 주세요',
         accountName: '내 통장',
         accountNumber: '1234',
-        accountBalance: 5000000, // 잔액 (예시)
+        accountBalance: accountBalance,
         onSubmit: _handleAmountSubmit,
       ),
     );
@@ -1360,13 +1405,14 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
       ChatItem.textMessage('알겠어요! 다시 투자 금액을 입력해 주세요 💰'),
     );
     
+    final accountBalance = _currentAccountBalance ?? 5000000;
     await _addBotMessage(
       ChatItem.amountInput(
         question: '얼마를 투자하실 건가요?',
-        hint: '1,000원 이상 입력해 주세요',
+        hint: '1,000원 이상, 잔액 이하로 입력해 주세요',
         accountName: '내 통장',
         accountNumber: '1234',
-        accountBalance: 5000000, // 잔액 (예시)
+        accountBalance: accountBalance,
         onSubmit: _handleAmountSubmit,
       ),
     );
