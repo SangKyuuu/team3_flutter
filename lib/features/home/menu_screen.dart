@@ -1,9 +1,7 @@
 import 'package:flutter/material.dart';
-import '../../common/app_routes.dart';
-import '../../common/utils.dart';
-import '../../data/service/mock_api.dart';
-import 'constants/app_colors.dart';
-import 'personal_info_screen.dart';
+
+import '../../data/service/mock_apireen.dart';
+import '../cs/cs_main_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -16,7 +14,7 @@ class _MenuScreenState extends State<MenuScreen> {
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
-    
+
     return Drawer(
       width: screenWidth,
       backgroundColor: const Color(0xFFF8F9FB),
@@ -140,8 +138,15 @@ class _MenuScreenState extends State<MenuScreen> {
                     ),
                     Expanded(
                       child: _buildQuickAccessItem(
-                        icon: Icons.phone,
-                        label: '전화상담',
+                        icon: Icons.headset_mic,
+                        label: '고객센터',
+                        onTap: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (context) => const CsMainScreen(),
+                            ),
+                          );
+                        },
                       ),
                     ),
                   ],
@@ -155,7 +160,10 @@ class _MenuScreenState extends State<MenuScreen> {
               child: Column(
                 children: [
                   Container(
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 16,
+                    ),
                     decoration: BoxDecoration(
                       color: const Color(0xFFF8F9FB),
                       borderRadius: BorderRadius.circular(12),
@@ -173,10 +181,7 @@ class _MenuScreenState extends State<MenuScreen> {
                         const Expanded(
                           child: Text(
                             '궁금한 것을 검색해 보세요',
-                            style: TextStyle(
-                              fontSize: 14,
-                              color: Colors.grey,
-                            ),
+                            style: TextStyle(fontSize: 14, color: Colors.grey),
                           ),
                         ),
                         Icon(
@@ -208,7 +213,8 @@ class _MenuScreenState extends State<MenuScreen> {
                       _buildMockInvestmentEntry(context),
 
                       const SizedBox(height: 12),
-                      Padding(padding: const EdgeInsets.symmetric(horizontal: 20),
+                      Padding(
+                        padding: const EdgeInsets.symmetric(horizontal: 20),
                         child: Column(
                           children: [
                             _buildFundCard(),
@@ -239,32 +245,28 @@ class _MenuScreenState extends State<MenuScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.trending_up,
-                      color: Colors.purple.shade400,
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      '펀드',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ],
+          Row(
+            children: [
+              Icon(Icons.trending_up, color: Colors.purple.shade400, size: 20),
+              const SizedBox(width: 8),
+              const Text(
+                '펀드',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
                 ),
-                Container(
-                  margin: const EdgeInsets.only(top: 16, bottom: 16),
-                  height: 1,
-                  color: Colors.grey.shade300,
-                ),
-                _buildMenuItem('펀드가입', Icons.add),
-                const SizedBox(height: 12),
-                _buildMenuItem('펀드관리', Icons.add),
+              ),
+            ],
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 16, bottom: 16),
+            height: 1,
+            color: Colors.grey.shade300,
+          ),
+          _buildMenuItem('펀드가입', Icons.add),
+          const SizedBox(height: 12),
+          _buildMenuItem('펀드관리', Icons.add),
         ],
       ),
     );
@@ -281,32 +283,32 @@ class _MenuScreenState extends State<MenuScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
-                Row(
-                  children: [
-                    Icon(
-                      Icons.account_balance,
-                      color: const Color(0xFF4FC3F7),
-                      size: 20,
-                    ),
-                    const SizedBox(width: 8),
-                    const Text(
-                      '예적금',
-                      style: TextStyle(
-                        fontSize: 16,
-                        fontWeight: FontWeight.w700,
-                        color: Colors.black87,
-                      ),
-                    ),
-                  ],
+          Row(
+            children: [
+              Icon(
+                Icons.account_balance,
+                color: const Color(0xFF4FC3F7),
+                size: 20,
+              ),
+              const SizedBox(width: 8),
+              const Text(
+                '예적금',
+                style: TextStyle(
+                  fontSize: 16,
+                  fontWeight: FontWeight.w700,
+                  color: Colors.black87,
                 ),
-                Container(
-                  margin: const EdgeInsets.only(top: 16, bottom: 16),
-                  height: 1,
-                  color: Colors.grey.shade300,
-                ),
-                _buildMenuItem('예금 가입', Icons.add),
-                const SizedBox(height: 12),
-                _buildMenuItem('적금 가입', Icons.add),
+              ),
+            ],
+          ),
+          Container(
+            margin: const EdgeInsets.only(top: 16, bottom: 16),
+            height: 1,
+            color: Colors.grey.shade300,
+          ),
+          _buildMenuItem('예금 가입', Icons.add),
+          const SizedBox(height: 12),
+          _buildMenuItem('적금 가입', Icons.add),
         ],
       ),
     );
@@ -325,11 +327,7 @@ class _MenuScreenState extends State<MenuScreen> {
         children: [
           Row(
             children: [
-              Icon(
-                Icons.headset_mic,
-                color: Colors.green.shade400,
-                size: 20,
-              ),
+              Icon(Icons.headset_mic, color: Colors.green.shade400, size: 20),
               const SizedBox(width: 8),
               const Text(
                 '고객지원',
@@ -367,11 +365,7 @@ class _MenuScreenState extends State<MenuScreen> {
               ),
             ),
           ),
-          Icon(
-            icon,
-            color: Colors.grey.shade600,
-            size: 20,
-          ),
+          Icon(icon, color: Colors.grey.shade600, size: 20),
         ],
       ),
     );
@@ -384,9 +378,11 @@ class _MenuScreenState extends State<MenuScreen> {
     VoidCallback? onTap,
   }) {
     return InkWell(
-      onTap: onTap ?? () {
-        // 기본 클릭 처리
-      },
+      onTap:
+          onTap ??
+          () {
+            // 기본 클릭 처리
+          },
       child: Column(
         mainAxisSize: MainAxisSize.min,
         children: [
@@ -404,11 +400,7 @@ class _MenuScreenState extends State<MenuScreen> {
                     );
                   },
                 )
-              : Icon(
-                  icon ?? Icons.error,
-                  color: Colors.black87,
-                  size: 24,
-                ),
+              : Icon(icon ?? Icons.error, color: Colors.black87, size: 24),
           const SizedBox(height: 8),
           Text(
             label,
@@ -426,29 +418,16 @@ class _MenuScreenState extends State<MenuScreen> {
   Widget _buildMockInvestmentEntry(BuildContext context) {
     return GestureDetector(
       onTap: () async {
-        try {
-          // 1. 로딩 시작
-          AppUtils.showLoading(context);
+        // 1. 계좌가 있는지 서버에 확인 (비동기 처리)
+        bool hasAccount = await MockApi.checkHasAccount();
 
-          // 2. 계좌 여부 확인 API 호출
-          bool hasAccount = await MockApi.checkHasAccount();
+        if (!context.mounted) return;
 
-          // 3. 로딩 종료 (context가 유효한지 확인)
-          if (!context.mounted) return;
-          AppUtils.hideLoading(context);
-
-          // 4. 결과에 따른 화면 이동
-          if (hasAccount) {
-            Navigator.pushNamed(context, AppRoutes.mockDashboard);
-          } else {
-            Navigator.pushNamed(context, AppRoutes.mockCreate);
-          }
-        } catch (e) {
-          // 5. 예외 발생 시 처리
-          if (context.mounted) {
-            AppUtils.hideLoading(context);
-            AppUtils.showError(context, '서버 통신 중 오류가 발생했습니다. 다시 시도해주세요.');
-          }
+        // 2. 결과에 따라 다른 화면으로 이동
+        if (hasAccount) {
+          Navigator.pushNamed(context, '/mock/dashboard');
+        } else {
+          Navigator.pushNamed(context, '/mock/create');
         }
       },
       child: Container(
@@ -461,7 +440,11 @@ class _MenuScreenState extends State<MenuScreen> {
         ),
         child: Row(
           children: [
-            const Icon(Icons.analytics_outlined, color: AppColors.primaryColor, size: 32),
+            const Icon(
+              Icons.analytics_outlined,
+              color: AppColors.primaryColor,
+              size: 32,
+            ),
             const SizedBox(width: 16),
             Expanded(
               child: Column(
@@ -516,14 +499,10 @@ class SearchIconPainter extends CustomPainter {
     // 선 그리기 (m21 21-4.34-4.34)
     final path = Path();
     path.moveTo(21 * scale + offsetX, 21 * scale + offsetY);
-    path.lineTo(
-      (21 - 4.34) * scale + offsetX,
-      (21 - 4.34) * scale + offsetY,
-    );
+    path.lineTo((21 - 4.34) * scale + offsetX, (21 - 4.34) * scale + offsetY);
     canvas.drawPath(path, paint);
   }
 
   @override
   bool shouldRepaint(covariant CustomPainter oldDelegate) => false;
 }
-
