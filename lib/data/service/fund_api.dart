@@ -83,6 +83,7 @@ class FundApi {
               badge: fundData.badge,
               badge2: fundData.badge2,
               yieldText: fundData.yieldText,
+              fundCode: fundData.fundCode,  // fundCode 유지
             );
           }
 

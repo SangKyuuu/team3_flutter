@@ -5,12 +5,14 @@ import '../fund_detail/pdf_viewer_screen.dart';
 
 class TermsAgreementScreen extends StatefulWidget {
   final String fundTitle;
+  final String? fundCode;  // 펀드 코드 추가
   final String badge;
   final String yieldText;
 
   const TermsAgreementScreen({
     super.key,
     required this.fundTitle,
+    this.fundCode,  // 선택적으로 받음
     required this.badge,
     required this.yieldText,
   });
@@ -479,6 +481,7 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
         MaterialPageRoute(
           builder: (context) => FundSubscriptionScreen(
             fundTitle: widget.fundTitle,
+            fundCode: widget.fundCode,  // fundCode 전달
             badge: widget.badge,
             yieldText: widget.yieldText,
           ),

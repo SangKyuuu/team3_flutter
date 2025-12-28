@@ -151,6 +151,7 @@ class _FundListScreenState extends State<FundListScreen> {
                               badge: fund.badge,
                               badge2: fund.badge2,
                               yieldText: fund.yieldText,
+                              fundCode: fund.fundCode,  // fundCode 전달
                               showDetailedView: true, // 더보기 화면에서는 상세 뷰 표시
                             ),
                           );

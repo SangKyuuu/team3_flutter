@@ -184,6 +184,7 @@ class LeftColumn extends StatelessWidget {
                     badge: fund.badge,
                     badge2: fund.badge2,
                     yieldText: fund.yieldText,
+                    fundCode: fund.fundCode,  // fundCode 전달
                   ),
                   const SizedBox(height: 12),
                 ],

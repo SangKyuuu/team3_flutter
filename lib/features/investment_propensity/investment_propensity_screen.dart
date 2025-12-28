@@ -8,6 +8,7 @@ import '../../data/service/risk_test_api.dart';
 class InvestmentPropensityScreen extends StatefulWidget {
   final VoidCallback? onComplete;
   final String? fundTitle;
+  final String? fundCode;  // 펀드 코드 추가
   final String? badge;
   final String? yieldText;
 
@@ -15,6 +16,7 @@ class InvestmentPropensityScreen extends StatefulWidget {
     super.key,
     this.onComplete,
     this.fundTitle,
+    this.fundCode,  // 선택적으로 받음
     this.badge,
     this.yieldText,
   });
@@ -510,6 +512,7 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
           MaterialPageRoute(
             builder: (context) => TermsAgreementScreen(
               fundTitle: widget.fundTitle!,
+              fundCode: widget.fundCode,  // fundCode 전달
               badge: widget.badge!,
               yieldText: widget.yieldText!,
             ),
