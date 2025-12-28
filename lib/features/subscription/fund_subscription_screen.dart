@@ -1,13 +1,16 @@
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
+import 'package:dio/dio.dart';
 import '../home/constants/app_colors.dart';
 import '../home/home_screen.dart';
 import 'services/signature_service.dart';
 import 'models/electronic_signature.dart';
 import 'widgets/password_input_dialog.dart';
+import '../../data/service/fund_subscription_api.dart';
 
 class FundSubscriptionScreen extends StatefulWidget {
   final String fundTitle;
+  final String? fundCode;  // 펀드 코드 추가
   final String badge;
   final String yieldText;
   final bool isMockInvestment;
@@ -15,6 +18,7 @@ class FundSubscriptionScreen extends StatefulWidget {
   const FundSubscriptionScreen({
     super.key,
     required this.fundTitle,
+    this.fundCode,  // 선택적으로 받음
     required this.badge,
     required this.yieldText,
     this.isMockInvestment = false,
@@ -42,6 +46,9 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
   int? _investmentAmount;
   int? _currentAccountBalance; // 현재 계좌 잔액
   bool _isCompleted = false;
+  bool _isDuplicateSubscription = false;  // 중복 가입 여부
+  int? _existingSubscriptionAmount;  // 이미 가입된 펀드의 투자금액
+  String? _existingSubscriptionStartAt;  // 이미 가입된 펀드의 투자시작일
   
   // 전자서명 기록
   ElectronicSignature? _signature;
@@ -266,10 +273,16 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
             if (frequency == '매일') {
               _handleInvestmentSchedule('매일');
             } else if (frequency == '매주' && day.isNotEmpty) {
-              setState(() => _weeklyDay = day);
+              setState(() {
+                _investmentSchedule = '매주';
+                _weeklyDay = day;
+              });
               _handleScheduleComplete('매주 $day');
             } else if (frequency == '매월' && day.isNotEmpty) {
-              setState(() => _monthlyDay = int.parse(day.replaceAll('일', '')));
+              setState(() {
+                _investmentSchedule = '매월';
+                _monthlyDay = int.parse(day.replaceAll('일', ''));
+              });
               _handleScheduleComplete('매월 $day');
             } else {
               // 주기만 선택하고 날짜/요일은 아직 선택하지 않은 경우
@@ -438,61 +451,110 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
       );
 
       setState(() => _isCompleted = true);
-      return; //여기서 리턴하여 아래의 실제 서명 로직을 실행하지 않음
-    }
-    
-    // 전자서명 요청 메시지
-    await _addBotMessage(
-      ChatItem.textMessage('마지막으로 전자서명이 필요해요 ✍️\n비밀번호를 입력해 주세요!'),
-    );
-    
-    // 전자서명 다이얼로그 표시
-    final password = await showPasswordInputDialog(
-      context: context,
-      title: '전자서명',
-      description: '펀드 가입을 완료하려면\n비밀번호를 입력해주세요.',
-    );
-    
-    if (password == null || password.isEmpty) {
-      // 취소한 경우
-      await _addBotMessage(
-        ChatItem.textMessage('전자서명이 취소되었어요.\n가입 내용 요약의 "펀드 가입하기" 버튼을 다시 눌러주시면 전자서명을 이어서 진행할 수 있어요.'),
-      );
-      // 바로 가입 내용 요약 카드 다시 표시
-      await _addBotMessage(
-        ChatItem.summaryCard(
-          fundName: widget.fundTitle,
-          amount: _investmentAmount!,
-          investmentType: _getInvestmentTypeText(),
-          accountInfo: '내 통장 (1234)',
-          onSubmit: _handleFinalSubmit,
-        ),
-      );
       return;
     }
     
-    // 전자서명 생성
-    _signature = SignatureService.createSignature(
-      userId: 'USER_001',  // 실제로는 로그인된 사용자 ID
-      productName: widget.fundTitle,
-      investmentAmount: _investmentAmount!,
-      password: password,
-      deviceInfo: 'Flutter App',
-    );
-    
+    // 펀드 가입 API 호출
     await _addBotMessage(
-      ChatItem.textMessage('전자서명이 완료되었어요! ✍️'),
+      ChatItem.textMessage('펀드 가입을 처리 중입니다... ⚙️'),
     );
-    
-    await _addBotMessage(
-      ChatItem.textMessage('가입이 완료되었어요! 🎉\n좋은 결과 있으시길 바랄게요!'),
-    );
-    
-    await Future.delayed(const Duration(milliseconds: 800));
-    
-    // 완료 화면 표시
-    if (mounted) {
-      setState(() => _isCompleted = true);
+
+    try {
+      // 투자 타입과 주기 정보 설정
+      String? cycleType;
+      String? weeklyDay;
+      int? monthlyDay;
+      
+      if (_investmentType == '매일, 매주, 매월 투자하기') {
+        // 자동이체인 경우
+        if (_investmentSchedule == '매일') {
+          cycleType = '매일';
+        } else if (_investmentSchedule == '매주') {
+          cycleType = '매주';
+          weeklyDay = _weeklyDay; // "월요일" 등
+        } else if (_investmentSchedule == '매월') {
+          cycleType = '매월';
+          monthlyDay = _monthlyDay; // 1~31
+        }
+      }
+
+      // API 호출
+      final result = await FundSubscriptionApi.subscribe(
+        fundCode: widget.fundCode ?? widget.fundTitle, // fundCode가 있으면 사용, 없으면 fundTitle 사용 (하위 호환)
+        tradeAmount: _investmentAmount!,
+        investmentType: _investmentType ?? '한 번만 투자하기',
+        cycleType: cycleType,
+        weeklyDay: weeklyDay,
+        monthlyDay: monthlyDay,
+      );
+
+      if (result['success'] == true) {
+        await _addBotMessage(
+          ChatItem.textMessage('가입이 완료되었어요! 🎉\n좋은 결과 있으시길 바랄게요!'),
+        );
+        
+        await Future.delayed(const Duration(milliseconds: 800));
+        
+        if (mounted) {
+          setState(() => _isCompleted = true);
+        }
+      } else {
+        // 중복 가입인 경우 완료 화면으로 이동
+        final errorMessage = result['message'] as String? ?? '가입 처리 중 오류가 발생했어요. 다시 시도해 주세요.';
+        if (errorMessage.contains('이미 가입한 펀드') || errorMessage.contains('이미 가입된 펀드')) {
+          // 기존 가입 정보 추출
+          if (result['existingSubscription'] != null) {
+            final existingInfo = result['existingSubscription'] as Map<String, dynamic>;
+            _existingSubscriptionAmount = existingInfo['amount'] as int?;
+            _existingSubscriptionStartAt = existingInfo['startAt'] as String?;
+          }
+          await Future.delayed(const Duration(milliseconds: 800));
+          if (mounted) {
+            setState(() {
+              _isDuplicateSubscription = true;
+              _isCompleted = true;
+            });
+          }
+        } else {
+          await _addBotMessage(
+            ChatItem.textMessage('$errorMessage 😢'),
+          );
+        }
+      }
+    } catch (e) {
+      print('펀드 가입 오류: $e');
+      // DioException인 경우 백엔드 메시지 확인
+      String errorMessage = '가입 처리 중 오류가 발생했어요. 다시 시도해 주세요.';
+      if (e is DioException && e.response?.data != null) {
+        final responseData = e.response!.data;
+        if (responseData is Map && responseData['message'] != null) {
+          errorMessage = responseData['message'] as String;
+        }
+      }
+      
+      // 중복 가입인 경우 완료 화면으로 이동
+      if (errorMessage.contains('이미 가입한 펀드') || errorMessage.contains('이미 가입된 펀드')) {
+        // 기존 가입 정보 추출
+        if (e is DioException && e.response?.data != null) {
+          final responseData = e.response!.data;
+          if (responseData is Map && responseData['existingSubscription'] != null) {
+            final existingInfo = responseData['existingSubscription'] as Map<String, dynamic>;
+            _existingSubscriptionAmount = existingInfo['amount'] as int?;
+            _existingSubscriptionStartAt = existingInfo['startAt'] as String?;
+          }
+        }
+        await Future.delayed(const Duration(milliseconds: 800));
+        if (mounted) {
+          setState(() {
+            _isDuplicateSubscription = true;
+            _isCompleted = true;
+          });
+        }
+      } else {
+        await _addBotMessage(
+          ChatItem.textMessage('$errorMessage 😢'),
+        );
+      }
     }
   }
 
@@ -651,23 +713,26 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
                         ),
                       ],
                     ),
-                    child: const Icon(
-                      Icons.check_rounded,
+                    child: Icon(
+                      _isDuplicateSubscription ? Icons.info_outline_rounded : Icons.check_rounded,
                       color: Colors.white,
                       size: 45,
                     ),
                   ),
                   const SizedBox(height: 28),
-                  const Text(
-                    '펀드가입 완료!',
+                  Text(
+                    _isDuplicateSubscription ? '이미 가입된 펀드입니다.' : '펀드가입 완료!',
                     style: TextStyle(
                       fontSize: 24,
                       fontWeight: FontWeight.w700,
+                      color: _isDuplicateSubscription ? Colors.red.shade700 : Colors.black87,
                     ),
                   ),
                   const SizedBox(height: 8),
                   Text(
-                    '투자의 좋은 시작이에요 🌱',
+                    _isDuplicateSubscription 
+                        ? '이미 가입하신 펀드입니다.\n다른 펀드를 선택해 주세요.' 
+                        : '투자의 좋은 시작이에요 🌱',
                     style: TextStyle(
                       fontSize: 15,
                       color: Colors.grey.shade600,
@@ -686,9 +751,19 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
                         children: [
                           _buildCompletionRow('펀드', widget.fundTitle),
                           const SizedBox(height: 16),
-                          _buildCompletionRow('투자금액', '${_formatNumber(_investmentAmount!)}원'),
+                          _buildCompletionRow(
+                            '투자금액', 
+                            _isDuplicateSubscription && _existingSubscriptionAmount != null
+                                ? '${_formatNumber(_existingSubscriptionAmount!)}원'
+                                : '${_formatNumber(_investmentAmount!)}원'
+                          ),
                           const SizedBox(height: 16),
-                          _buildCompletionRow('투자시작일', _getFormattedDate()),
+                          _buildCompletionRow(
+                            '투자시작일', 
+                            _isDuplicateSubscription && _existingSubscriptionStartAt != null
+                                ? _existingSubscriptionStartAt!
+                                : _getFormattedDate()
+                          ),
                         ],
                       ),
                     ),
@@ -931,14 +1006,23 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
   }
 
   Widget _buildTextBubble(String text) {
+    // 중복 가입 메시지인 경우 크게 표시
+    final bool isDuplicateMessage = text.contains('이미 가입한 펀드');
+    final double fontSize = isDuplicateMessage ? 18.0 : 15.0;
+    final FontWeight fontWeight = isDuplicateMessage ? FontWeight.w600 : FontWeight.normal;
+    final Color textColor = isDuplicateMessage ? Colors.red.shade700 : Colors.black87;
+    
     return Container(
       padding: const EdgeInsets.all(16),
       decoration: BoxDecoration(
-        color: Colors.white,
+        color: isDuplicateMessage ? Colors.red.shade50 : Colors.white,
         borderRadius: BorderRadius.circular(20),
+        border: isDuplicateMessage ? Border.all(color: Colors.red.shade200, width: 1.5) : null,
         boxShadow: [
           BoxShadow(
-            color: Colors.black.withOpacity(0.04),
+            color: isDuplicateMessage 
+                ? Colors.red.withOpacity(0.1)
+                : Colors.black.withOpacity(0.04),
             blurRadius: 8,
             offset: const Offset(0, 2),
           ),
@@ -946,10 +1030,11 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
       ),
       child: Text(
         text,
-        style: const TextStyle(
-          fontSize: 15,
+        style: TextStyle(
+          fontSize: fontSize,
           height: 1.5,
-          color: Colors.black87,
+          color: textColor,
+          fontWeight: fontWeight,
         ),
       ),
     );
@@ -2282,7 +2367,7 @@ class _WheelPickerWidgetState extends State<_WheelPickerWidget> {
       if (_selectedFrequency == '매주') {
         return ['월요일', '화요일', '수요일', '목요일', '금요일'];
       } else if (_selectedFrequency == '매월') {
-        return List.generate(28, (index) => '${index + 1}일');
+        return List.generate(31, (index) => '${index + 1}일');
       } else {
         // 매일은 날짜 선택 불필요
         return [];
@@ -2290,7 +2375,7 @@ class _WheelPickerWidgetState extends State<_WheelPickerWidget> {
     } else if (widget.pickerType == 'weekly') {
       return ['월요일', '화요일', '수요일', '목요일', '금요일'];
     } else {
-      return List.generate(28, (index) => '${index + 1}일');
+      return List.generate(31, (index) => '${index + 1}일');
     }
   }
 
@@ -2300,7 +2385,7 @@ class _WheelPickerWidgetState extends State<_WheelPickerWidget> {
     if (widget.pickerType == 'schedule') {
       // 주기 선택 모드 - 기본값으로 매월 선택하고 날짜도 함께 표시
       _selectedFrequency = '매월';
-      final monthlyDays = List.generate(28, (index) => '${index + 1}일');
+      final monthlyDays = List.generate(31, (index) => '${index + 1}일');
       _selectedDay = monthlyDays[0]; // 기본값: 1일
     } else if (widget.pickerType == 'weekly') {
       _selectedFrequency = '매주';

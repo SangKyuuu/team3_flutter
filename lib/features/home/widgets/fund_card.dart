@@ -15,6 +15,7 @@ class FundCard extends StatefulWidget {
     required this.badge,
     this.badge2,
     required this.yieldText,
+    this.fundCode,  // 펀드 코드 추가
     this.showDetailedView = false, // 더보기 화면에서만 true
   });
 
@@ -24,6 +25,7 @@ class FundCard extends StatefulWidget {
   final String badge;
   final String? badge2;
   final String yieldText;
+  final String? fundCode;  // 펀드 코드
   final bool showDetailedView; // 하트 아이콘과 1,3,6,12개월 수익률 표시 여부
 
   factory FundCard.placeholder() {
@@ -211,6 +213,7 @@ class _FundCardState extends State<FundCard> {
                     MaterialPageRoute(
                       builder: (context) => InvestmentPropensityScreen(
                         fundTitle: widget.title,
+                        fundCode: widget.fundCode,  // fundCode 전달
                         badge: widget.badge,
                         yieldText: widget.yieldText,
                       ),

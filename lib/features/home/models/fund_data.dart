@@ -6,6 +6,7 @@ class FundData {
     required this.badge,
     this.badge2,
     required this.yieldText,
+    this.fundCode,
   });
 
   final String title;
@@ -14,6 +15,7 @@ class FundData {
   final String badge;
   final String? badge2;
   final String yieldText;
+  final String? fundCode;
 
   // JSON에서 FundData로 변환
   // 스프링 JSON 형식과 Flutter 형식 모두 지원
@@ -53,6 +55,7 @@ class FundData {
         badge: badge,
         badge2: null,
         yieldText: yieldText,
+        fundCode: json['fundcode'] as String?, // 백엔드에서 fundcode로 오는 경우
       );
     } else {
       // 기존 Flutter 형식 (title, badge 등 직접 필드명 사용)
@@ -63,6 +66,7 @@ class FundData {
         badge: json['badge'] as String? ?? '',
         badge2: json['badge2'] as String?,
         yieldText: json['yieldText'] as String? ?? '—',
+        fundCode: json['fundCode'] as String? ?? json['fundcode'] as String?,
       );
     }
   }
@@ -76,6 +80,7 @@ class FundData {
       'badge': badge,
       'badge2': badge2,
       'yieldText': yieldText,
+      'fundCode': fundCode,
     };
   }
 }
