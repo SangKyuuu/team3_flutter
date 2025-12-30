@@ -1,4 +1,5 @@
 import 'package:team3/data/service/api_client.dart';
+import 'package:dio/dio.dart';
 
 /// 투자성향 조사(RISK_TEST_RESULT) 관련 API
 /// 
@@ -9,8 +10,8 @@ class RiskTestApi {
   /// 서버에서 DB의 RISK_TEST_RESULT 테이블을 조회하여
   /// CUST_NO + TEST_DATE(오늘 날짜)로 검사
   /// 
-  /// [custNo] 고객 번호 (CUST_NO)
-  /// [userId] 사용자 ID (USER_ID) - 선택적
+  /// [custNo] 고객 번호 (CUST_NO) - 현재는 사용하지 않음 (서버에서 세션 또는 하드코딩된 값 사용)
+  /// [userId] 사용자 ID (USER_ID) - 선택적, 현재는 사용하지 않음
   /// 
   /// Returns:
   /// - `hasCompletedToday`: 오늘 조사 완료 여부 (boolean)
@@ -20,14 +21,13 @@ class RiskTestApi {
   ///   - `riskType`: 투자 성향
   ///   - `testDate`: 테스트 일시
   /// 
-  /// TODO: 백엔드 API 엔드포인트 확인 후 구현
-  /// 예상 API: GET /api/risk-test/check-today?custNo={custNo}&userId={userId}
+  /// API: GET /api/funds/risk-test/check
   /// 
-  /// 예상 응답 형식:
+  /// 응답 형식:
   /// {
   ///   "hasCompletedToday": true/false,
   ///   "latestResult": {
-  ///     "testRunId": "TEST_001",
+  ///     "testRunId": "REQ_20250116_00001",
   ///     "totalScore": 20,
   ///     "riskType": "위험중립형",
   ///     "testDate": "2025-01-16T10:30:00"
@@ -37,20 +37,23 @@ class RiskTestApi {
     required int custNo,
     String? userId,
   }) async {
-    // TODO: 백엔드 API 구현 후 아래 주석 해제하고 실제 호출
-    /*
     try {
       final response = await ApiClient.dio.get(
-        '/api/risk-test/check-today', // TODO: 실제 엔드포인트 경로 확인
-        queryParameters: {
-          'custNo': custNo,
-          if (userId != null) 'userId': userId,
-        },
+        '/api/funds/risk-test/check',
+        // queryParameters는 필요 없음 (서버에서 세션 또는 하드코딩된 custNo 사용)
       );
 
+      if (response.data is Map) {
+        final data = response.data as Map<String, dynamic>;
+        return {
+          'hasCompletedToday': data['hasCompletedToday'] ?? false,
+          'latestResult': data['latestResult'], // null 가능
+        };
+      }
+      
       return {
-        'hasCompletedToday': response.data['hasCompletedToday'] ?? false,
-        'latestResult': response.data['latestResult'], // null 가능
+        'hasCompletedToday': false,
+        'latestResult': null,
       };
     } catch (e) {
       // API 에러 발생 시 조사 가능하도록 false 반환
@@ -60,21 +63,12 @@ class RiskTestApi {
         'latestResult': null,
       };
     }
-    */
-    
-    // 임시: 항상 조사 가능하도록 false 반환
-    return {
-      'hasCompletedToday': false,
-      'latestResult': null,
-    };
   }
 
   /// 투자성향 조사 결과 저장
   /// 
   /// 서버에서 RISK_TEST_RESULT 테이블에 INSERT
   /// 
-  /// [custNo] 고객 번호 (CUST_NO)
-  /// [userId] 사용자 ID (USER_ID) - 선택적
   /// [totalScore] 총 점수 (TOTAL_SCORE)
   /// [riskType] 투자 성향 (RISK_TYPE)
   /// 
@@ -82,54 +76,51 @@ class RiskTestApi {
   /// - TEST_RUN_ID: 시퀀스로 자동 생성
   /// - TEST_DATE: 현재 시간으로 자동 설정
   /// - END_DATE: 유효기간 계산하여 자동 설정
+  /// - CUST_NO: 서버에서 세션 또는 하드코딩된 값 사용
   /// 
-  /// Returns 저장된 테스트 실행 ID (TEST_RUN_ID)
+  /// API: POST /api/funds/risk-test/save
   /// 
-  /// TODO: 백엔드 API 엔드포인트 확인 후 구현
-  /// 예상 API: POST /api/risk-test/save
-  /// 
-  /// 예상 요청 형식:
+  /// 요청 형식:
   /// {
-  ///   "custNo": 1,
-  ///   "userId": "user001" (선택적),
   ///   "totalScore": 20,
   ///   "riskType": "위험중립형"
   /// }
   /// 
-  /// 예상 응답 형식:
+  /// 응답 형식:
   /// {
-  ///   "testRunId": "TEST_001"
+  ///   "success": true,
+  ///   "message": "투자성향 조사 결과가 저장되었습니다."
   /// }
-  static Future<String> saveTestResult({
-    required int custNo,
-    String? userId,
+  static Future<bool> saveTestResult({
     required int totalScore,
     required String riskType,
   }) async {
-    // TODO: 백엔드 API 구현 후 아래 주석 해제하고 실제 호출
-    /*
     try {
       final response = await ApiClient.dio.post(
-        '/api/risk-test/save', // TODO: 실제 엔드포인트 경로 확인
+        '/api/funds/risk-test/save',
         data: {
-          'custNo': custNo,
-          if (userId != null) 'userId': userId,
           'totalScore': totalScore,
           'riskType': riskType,
         },
       );
 
-      // 서버에서 TEST_RUN_ID를 반환
-      return response.data['testRunId'] ?? '';
+      // 성공 여부 반환
+      if (response.data is Map) {
+        final data = response.data as Map<String, dynamic>;
+        return data['success'] == true;
+      }
+      return false;
+    } on DioException catch (e) {
+      print('투자성향 조사 결과 저장 API 에러: ${e.message}');
+      if (e.response != null) {
+        print('에러 응답 상태 코드: ${e.response?.statusCode}');
+        print('에러 응답 데이터: ${e.response?.data}');
+      }
+      rethrow;
     } catch (e) {
-      print('투자성향 조사 결과 저장 API 에러: $e');
+      print('투자성향 조사 결과 저장 예상치 못한 오류: $e');
       rethrow;
     }
-    */
-    
-    // 임시: 성공으로 처리 (실제 저장은 하지 않음)
-    print('투자성향 조사 결과 저장 (임시): custNo=$custNo, totalScore=$totalScore, riskType=$riskType');
-    return 'TEMP_TEST_RUN_ID';
   }
 }
 

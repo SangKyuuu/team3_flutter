@@ -475,35 +475,35 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
         ChatItem.textMessage('전자서명이 완료되었어요! ✍️'),
       );
       
-      // TODO: 백엔드 API 구현 후 아래 주석 해제하고 실제 저장
-      /*
       // 투자성향 조사 결과를 서버에 저장
       try {
-        // TODO: 실제 로그인된 사용자 정보 가져오기
-        // 예: AuthApi.me() 또는 사용자 정보 저장소에서 가져오기
-        // final userInfo = await AuthApi.getUserInfo();
-        // final custNo = userInfo['custNo'];
-        // final userId = userInfo['userId'];
-        
-        // 임시로 테스트용 값 사용 (실제 구현 시 위의 코드로 교체)
-        final int custNo = 1; // TODO: 실제 고객 번호 사용
-        final String? userId = null; // TODO: 실제 사용자 ID 사용
-        
         if (_resultType != null) {
-          await RiskTestApi.saveTestResult(
-            custNo: custNo,
-            userId: userId,
+          final success = await RiskTestApi.saveTestResult(
             totalScore: _totalScore,
             riskType: _resultType!,
           );
+          
+          if (success) {
+            print('투자성향 조사 결과 저장 완료');
+          } else {
+            print('투자성향 조사 결과 저장 실패: success=false');
+          }
         }
       } catch (e) {
         // DB 저장 실패 시에도 계속 진행 (에러 로깅만)
         print('투자성향 조사 결과 저장 실패: $e');
+        // 사용자에게는 에러를 표시하지 않고 계속 진행
       }
-      */
       
       await Future.delayed(const Duration(milliseconds: 800));
+      
+      // fundCode가 없으면 가입 프로세스를 진행하지 않음
+      if (widget.fundCode == null || widget.fundCode!.isEmpty) {
+        await _addBotMessage(
+          ChatItem.textMessage('펀드 정보가 없어 가입할 수 없습니다. 😢\n홈 화면에서 펀드를 선택해주세요.'),
+        );
+        return;
+      }
       
       // 약관 동의 화면으로 이동 (pop하지 않고 push)
       if (mounted) {

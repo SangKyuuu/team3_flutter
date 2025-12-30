@@ -4,6 +4,7 @@ import '../home/constants/app_colors.dart';
 import '../subscription/fund_subscription_screen.dart';
 import '../investment_propensity/investment_propensity_screen.dart';
 import '../terms_agreement/terms_agreement_screen.dart';
+import '../../data/service/risk_test_api.dart';
 import 'pdf_viewer_screen.dart';
 
 class FundDetailScreen extends StatefulWidget {
@@ -12,6 +13,7 @@ class FundDetailScreen extends StatefulWidget {
   final String badge;
   final String yieldText;
   final String? description;
+  final String? fundCode;  // 펀드 코드 추가
 
   const FundDetailScreen({
     super.key,
@@ -20,6 +22,7 @@ class FundDetailScreen extends StatefulWidget {
     required this.badge,
     required this.yieldText,
     this.description,
+    this.fundCode,  // 선택적으로 받음
   });
 
   @override
@@ -725,18 +728,58 @@ class _FundDetailScreenState extends State<FundDetailScreen> {
         width: double.infinity,
         height: 56,
         child: ElevatedButton(
-          onPressed: () {
-            // 1단계: 투자성향 조사 (각 화면에서 다음 화면으로 직접 push)
-            Navigator.push(
-              context,
-              MaterialPageRoute(
-                builder: (context) => InvestmentPropensityScreen(
-                  fundTitle: widget.title,
-                  badge: widget.badge,
-                  yieldText: widget.yieldText,
+          onPressed: () async {
+            // 투자성향 조사 확인
+            try {
+              final checkResult = await RiskTestApi.checkToday(
+                custNo: 18, // TODO: 실제 로그인된 사용자 custNo 사용
+              );
+              
+              if (checkResult['hasCompletedToday'] == true) {
+                // 이미 투자성향 조사를 완료한 경우, 약관 동의 화면으로 바로 이동
+                if (!mounted) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => TermsAgreementScreen(
+                      fundTitle: widget.title,
+                      fundCode: widget.fundCode,
+                      badge: widget.badge,
+                      yieldText: widget.yieldText,
+                    ),
+                  ),
+                );
+              } else {
+                // 투자성향 조사를 하지 않은 경우, 투자성향 조사 화면으로 이동
+                if (!mounted) return;
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => InvestmentPropensityScreen(
+                      fundTitle: widget.title,
+                      fundCode: widget.fundCode,  // fundCode 전달
+                      badge: widget.badge,
+                      yieldText: widget.yieldText,
+                    ),
+                  ),
+                );
+              }
+            } catch (e) {
+              // 에러 발생 시 투자성향 조사 화면으로 이동 (안전하게)
+              print('투자성향 조사 확인 중 오류: $e');
+              if (!mounted) return;
+              Navigator.push(
+                context,
+                MaterialPageRoute(
+                  builder: (context) => InvestmentPropensityScreen(
+                    fundTitle: widget.title,
+                    fundCode: widget.fundCode,
+                    badge: widget.badge,
+                    yieldText: widget.yieldText,
+                  ),
                 ),
-              ),
-            );
+              );
+            }
           },
           style: ElevatedButton.styleFrom(
             backgroundColor: AppColors.primaryColor,

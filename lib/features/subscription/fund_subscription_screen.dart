@@ -478,9 +478,23 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
         }
       }
 
-      // API 호출
+      // fundCode가 필수이므로 null 체크
+      if (widget.fundCode == null || widget.fundCode!.isEmpty) {
+        await _addBotMessage(
+          ChatItem.textMessage('펀드 코드 정보가 없어 가입할 수 없습니다. 😢\n앱을 재시작해주세요.'),
+        );
+        return;
+      }
+      
+      // API 호출 전 디버깅 로그
+      print('=== 펀드 가입 요청 디버깅 ===');
+      print('widget.fundCode: ${widget.fundCode}');
+      print('widget.fundTitle: ${widget.fundTitle}');
+      print('===========================');
+      
+      // API 호출 (fundCode 필수 사용)
       final result = await FundSubscriptionApi.subscribe(
-        fundCode: widget.fundCode ?? widget.fundTitle, // fundCode가 있으면 사용, 없으면 fundTitle 사용 (하위 호환)
+        fundCode: widget.fundCode!, // fundCode 필수 사용
         tradeAmount: _investmentAmount!,
         investmentType: _investmentType ?? '한 번만 투자하기',
         cycleType: cycleType,
