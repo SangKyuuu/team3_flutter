@@ -1,7 +1,10 @@
 import 'package:flutter/material.dart';
+import 'package:team3/features/cs/cs_chatbot_screen.dart';
 
-import '../../data/service/mock_apireen.dart';
+import '../../data/service/mock_api.dart';
 import '../cs/cs_main_screen.dart';
+import 'constants/app_colors.dart';
+import 'personal_info_screen.dart';
 
 class MenuScreen extends StatefulWidget {
   const MenuScreen({super.key});
@@ -129,6 +132,14 @@ class _MenuScreenState extends State<MenuScreen> {
                       child: _buildQuickAccessItem(
                         imagePath: 'assets/images/bot-message-square.png',
                         label: '챗봇',
+                        onTap: () {
+                          Navigator.push(
+                            context,
+                            MaterialPageRoute(
+                              builder: (context) => const CsChatbotScreen(),
+                            ),
+                          );
+                        },
                       ),
                     ),
                     Container(
@@ -141,7 +152,8 @@ class _MenuScreenState extends State<MenuScreen> {
                         icon: Icons.headset_mic,
                         label: '고객센터',
                         onTap: () {
-                          Navigator.of(context).push(
+                          Navigator.push(
+                            context,
                             MaterialPageRoute(
                               builder: (context) => const CsMainScreen(),
                             ),

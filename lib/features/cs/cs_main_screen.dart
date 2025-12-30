@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:team3/features/cs/cs_chatbot_screen.dart';
 import 'package:team3/features/home/home_screen.dart';
 import 'package:url_launcher/url_launcher.dart';
 
-import 'cs_chatbot_screen.dart';
 import 'cs_faq_list_screen.dart';
 import 'cs_my_tickets_screen.dart';
 import 'cs_one_on_one_inquiry_screen.dart';
@@ -180,7 +180,7 @@ class _CsMainScreenState extends State<CsMainScreen> {
                     },
                   ),
                   _MenuTile(
-                    title: "증권봇",
+                    title: "우사기 봇",
                     onTap: () {
                       Navigator.push(
                         context,

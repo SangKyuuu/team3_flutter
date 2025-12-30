@@ -1,31 +1,37 @@
-import 'package:flutter/material.dart';
-import 'package:image_picker/image_picker.dart';
 import 'dart:io';
 
-import '../home/home_screen.dart';
+import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
+
 import '../../data/service/inquiry_api.dart';
+import '../home/home_screen.dart';
 
 class CsOneOnOneInquiryScreen extends StatefulWidget {
   const CsOneOnOneInquiryScreen({super.key});
 
   @override
-  State<CsOneOnOneInquiryScreen> createState() => _CsOneOnOneInquiryScreenState();
+  State<CsOneOnOneInquiryScreen> createState() =>
+      _CsOneOnOneInquiryScreenState();
 }
 
 class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
   final _titleController = TextEditingController();
   final _contentController = TextEditingController();
-  
+
   String? _selectedCategory;
   bool _attachOriginalImage = false;
   File? _selectedFile;
   final ImagePicker _picker = ImagePicker();
-  
+
   final List<Map<String, dynamic>> _categories = [
-    {'id': 1, 'name': '계좌개설'},
-    {'id': 2, 'name': '이용'},
-    {'id': 3, 'name': '해지'},
-    {'id': 4, 'name': '기타'},
+    {'id': 1, 'name': '정보/공지'},
+    {'id': 2, 'name': '고객지원'},
+    {'id': 3, 'name': '공지자료'},
+    {'id': 4, 'name': '수시공시'},
+    {'id': 5, 'name': '펀드정보'},
+    {'id': 6, 'name': '펀드가이드'},
+    {'id': 7, 'name': '펀드시황관리'},
+    {'id': 8, 'name': '기타'},
   ];
 
   @override
@@ -70,9 +76,9 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('이미지를 선택할 수 없습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('이미지를 선택할 수 없습니다.')));
       }
     }
   }
@@ -109,24 +115,26 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
                 ),
               ),
               const Divider(height: 1),
-              ..._categories.map((category) => Column(
-                    children: [
-                      ListTile(
-                        title: Text(
-                          category['name'] as String,
-                          style: const TextStyle(fontSize: 16),
-                        ),
-                        onTap: () {
-                          setState(() {
-                            _selectedCategory = category['name'] as String;
-                          });
-                          Navigator.pop(context);
-                        },
+              ..._categories.map(
+                (category) => Column(
+                  children: [
+                    ListTile(
+                      title: Text(
+                        category['name'] as String,
+                        style: const TextStyle(fontSize: 16),
                       ),
-                      if (category != _categories.last)
-                        const Divider(height: 1, indent: 16, endIndent: 16),
-                    ],
-                  )),
+                      onTap: () {
+                        setState(() {
+                          _selectedCategory = category['name'] as String;
+                        });
+                        Navigator.pop(context);
+                      },
+                    ),
+                    if (category != _categories.last)
+                      const Divider(height: 1, indent: 16, endIndent: 16),
+                  ],
+                ),
+              ),
             ],
           ),
         );
@@ -137,23 +145,23 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
   Future<void> _submitInquiry() async {
     // 폼 검증
     if (_selectedCategory == null) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('문의분류를 선택해주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('문의분류를 선택해주세요.')));
       return;
     }
 
     if (_titleController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('제목을 입력해주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('제목을 입력해주세요.')));
       return;
     }
 
     if (_contentController.text.trim().isEmpty) {
-      ScaffoldMessenger.of(context).showSnackBar(
-        const SnackBar(content: Text('문의내용을 입력해주세요.')),
-      );
+      ScaffoldMessenger.of(
+        context,
+      ).showSnackBar(const SnackBar(content: Text('문의내용을 입력해주세요.')));
       return;
     }
 
@@ -176,9 +184,9 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
 
       if (mounted) {
         if (success) {
-          ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(content: Text('문의가 접수되었습니다.')),
-          );
+          ScaffoldMessenger.of(
+            context,
+          ).showSnackBar(const SnackBar(content: Text('문의가 접수되었습니다.')));
           Navigator.pop(context);
         } else {
           ScaffoldMessenger.of(context).showSnackBar(
@@ -188,9 +196,9 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
       }
     } catch (e) {
       if (mounted) {
-        ScaffoldMessenger.of(context).showSnackBar(
-          const SnackBar(content: Text('문의 접수 중 오류가 발생했습니다.')),
-        );
+        ScaffoldMessenger.of(
+          context,
+        ).showSnackBar(const SnackBar(content: Text('문의 접수 중 오류가 발생했습니다.')));
       }
     }
   }
@@ -240,7 +248,7 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
               onTap: _showCategoryBottomSheet,
             ),
             const SizedBox(height: 16),
-            
+
             // 제목 필드
             _buildTextField(
               label: '제목(필수)',
@@ -248,7 +256,7 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
               hintText: '제목을 입력하세요',
             ),
             const SizedBox(height: 16),
-            
+
             // 문의내용 필드
             _buildTextAreaField(
               label: '문의내용(필수)',
@@ -256,29 +264,23 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
               hintText: '문의 내용을 입력하세요',
             ),
             const SizedBox(height: 12),
-            
+
             // 경고 메시지
             const Padding(
               padding: EdgeInsets.symmetric(horizontal: 4),
               child: Text(
                 '• 주민등록번호, 전화번호 등 개인정보가 입력되지 않도록 유의해 주세요.',
-                style: TextStyle(
-                  fontSize: 12,
-                  color: Colors.grey,
-                ),
+                style: TextStyle(fontSize: 12, color: Colors.grey),
               ),
             ),
             const SizedBox(height: 20),
-            
+
             // 파일 첨부 섹션
             Row(
               children: [
                 const Text(
                   '파일 촬영 또는 선택',
-                  style: TextStyle(
-                    fontSize: 14,
-                    color: Colors.black87,
-                  ),
+                  style: TextStyle(fontSize: 14, color: Colors.black87),
                 ),
                 const Spacer(),
                 ElevatedButton(
@@ -287,7 +289,10 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
                     backgroundColor: Colors.white,
                     foregroundColor: Colors.black87,
                     elevation: 0,
-                    padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 16,
+                      vertical: 8,
+                    ),
                     shape: RoundedRectangleBorder(
                       borderRadius: BorderRadius.circular(8),
                       side: BorderSide(color: Colors.grey.shade300),
@@ -329,7 +334,7 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
               ),
             ],
             const SizedBox(height: 12),
-            
+
             // 원본 이미지 첨부 체크박스
             Row(
               children: [
@@ -341,14 +346,11 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
                     });
                   },
                 ),
-                const Text(
-                  '원본 이미지 첨부',
-                  style: TextStyle(fontSize: 14),
-                ),
+                const Text('원본 이미지 첨부', style: TextStyle(fontSize: 14)),
               ],
             ),
             const SizedBox(height: 40),
-            
+
             // 문의접수 버튼
             ElevatedButton(
               onPressed: _submitInquiry,
@@ -363,10 +365,7 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
               ),
               child: const Text(
                 '문의접수',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
+                style: TextStyle(fontSize: 16, fontWeight: FontWeight.w600),
               ),
             ),
           ],
@@ -408,7 +407,9 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
                     _selectedCategory ?? '문의분류를 선택하세요',
                     style: TextStyle(
                       fontSize: 14,
-                      color: _selectedCategory == null ? Colors.grey.shade400 : Colors.black87,
+                      color: _selectedCategory == null
+                          ? Colors.grey.shade400
+                          : Colors.black87,
                     ),
                   ),
                 ),
@@ -457,7 +458,10 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
               borderRadius: BorderRadius.circular(12),
               borderSide: BorderSide(color: Colors.grey.shade300),
             ),
-            contentPadding: const EdgeInsets.symmetric(horizontal: 16, vertical: 16),
+            contentPadding: const EdgeInsets.symmetric(
+              horizontal: 16,
+              vertical: 16,
+            ),
           ),
         ),
       ],
@@ -508,4 +512,3 @@ class _CsOneOnOneInquiryScreenState extends State<CsOneOnOneInquiryScreen> {
     );
   }
 }
-
