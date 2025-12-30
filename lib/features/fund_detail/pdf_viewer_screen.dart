@@ -1,4 +1,8 @@
 import 'package:flutter/material.dart';
+import 'package:flutter_pdfview/flutter_pdfview.dart';
+import 'package:dio/dio.dart';
+import 'package:path_provider/path_provider.dart';
+import 'dart:io';
 import '../home/constants/app_colors.dart';
 
 /// PDF 뷰어 화면
@@ -26,28 +30,99 @@ class PdfViewerScreen extends StatefulWidget {
 class _PdfViewerScreenState extends State<PdfViewerScreen> {
   bool _isDownloading = false;
   bool _isLoading = true;
+  String? _localFilePath; // 다운로드한 PDF 파일의 로컬 경로
+  PDFViewController? _pdfViewController;
 
   @override
   void initState() {
     super.initState();
-    // 나중에 PDF 로드 로직이 들어갈 위치
     _loadPdf();
   }
 
+  /// PDF 다운로드 및 로드
   Future<void> _loadPdf() async {
-    // TODO: PDF 로드 로직
-    // 예: 
-    // if (widget.documentUrl != null) {
-    //   await _loadPdfFromUrl(widget.documentUrl!);
-    // } else if (widget.documentPath != null) {
-    //   await _loadPdfFromPath(widget.documentPath!);
-    // }
-    
-    // 임시로 로딩 완료 처리
-    await Future.delayed(const Duration(milliseconds: 500));
-    if (mounted) {
-      setState(() => _isLoading = false);
+    // 로컬 경로가 이미 있으면 바로 사용
+    if (widget.documentPath != null && widget.documentPath!.isNotEmpty) {
+      setState(() {
+        _localFilePath = widget.documentPath;
+        _isLoading = false;
+      });
+      return;
     }
+
+    // URL이 있으면 다운로드
+    if (widget.documentUrl != null && widget.documentUrl!.isNotEmpty) {
+      try {
+        setState(() {
+          _isDownloading = true;
+          _isLoading = true;
+        });
+        
+        print('PDF 다운로드 시작: ${widget.documentUrl}');
+        
+        // 1. 임시 디렉토리 가져오기
+        final directory = await getTemporaryDirectory();
+        final fileName = widget.documentUrl!.split('/').last;
+        final filePath = '${directory.path}/$fileName';
+
+        print('PDF 저장 경로: $filePath');
+
+        // 2. Dio로 PDF 다운로드
+        final dio = Dio();
+        await dio.download(
+          widget.documentUrl!,
+          filePath,
+          onReceiveProgress: (received, total) {
+            if (total != -1) {
+              final progress = (received / total * 100).toStringAsFixed(0);
+              print('PDF 다운로드 진행률: $progress%');
+            }
+          },
+        );
+
+        // 3. 파일이 제대로 다운로드되었는지 확인
+        final file = File(filePath);
+        if (await file.exists()) {
+          final fileSize = await file.length();
+          print('PDF 다운로드 완료: $filePath (크기: $fileSize bytes)');
+          
+          setState(() {
+            _localFilePath = filePath;
+            _isLoading = false;
+            _isDownloading = false;
+          });
+        } else {
+          throw Exception('PDF 파일 다운로드 실패: 파일이 생성되지 않았습니다.');
+        }
+      } catch (e) {
+        print('PDF 다운로드 오류: $e');
+        if (mounted) {
+          setState(() {
+            _isLoading = false;
+            _isDownloading = false;
+          });
+          ScaffoldMessenger.of(context).showSnackBar(
+            SnackBar(
+              content: Text('PDF를 불러올 수 없습니다.\n${e.toString()}'),
+              backgroundColor: Colors.red,
+              duration: const Duration(seconds: 5),
+            ),
+          );
+        }
+      }
+    } else {
+      // URL이나 경로가 없는 경우
+      setState(() {
+        _isLoading = false;
+      });
+    }
+  }
+
+  @override
+  void dispose() {
+    // PDFViewController는 dispose 메서드가 없으므로 null로 설정만 함
+    _pdfViewController = null;
+    super.dispose();
   }
 
   Future<void> _downloadPdf() async {
@@ -198,134 +273,108 @@ class _PdfViewerScreenState extends State<PdfViewerScreen> {
   }
 
   Widget _buildPdfViewer() {
-    // TODO: 실제 PDF 뷰어 위젯으로 교체
-    // 예: 
-    // if (widget.documentUrl != null) {
-    //   return SfPdfViewer.network(widget.documentUrl!);
-    // } else if (widget.documentPath != null) {
-    //   return SfPdfViewer.asset(widget.documentPath!);
-    // }
-    
-    // 임시로 PDF 뷰어 영역 표시
-    return Column(
-      children: [
-        // PDF 뷰어 툴바 (줌, 페이지 네비게이션 등)
-        Container(
-          color: Colors.grey.shade100,
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
-          child: Row(
-            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-            children: [
-              // 페이지 정보
-              Text(
-                '1 / 1',
-                style: TextStyle(
-                  fontSize: 14,
-                  color: Colors.grey.shade700,
-                ),
-              ),
-              // 줌 컨트롤
-              Row(
-                children: [
-                  IconButton(
-                    icon: const Icon(Icons.zoom_out, size: 20),
-                    onPressed: () {
-                      // TODO: 줌 아웃
-                    },
-                    color: Colors.grey.shade700,
-                  ),
-                  Text(
-                    '100%',
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade700,
-                    ),
-                  ),
-                  IconButton(
-                    icon: const Icon(Icons.zoom_in, size: 20),
-                    onPressed: () {
-                      // TODO: 줌 인
-                    },
-                    color: Colors.grey.shade700,
-                  ),
-                ],
-              ),
-            ],
-          ),
-        ),
-        // PDF 뷰어 영역
-        Expanded(
-          child: Container(
-            color: Colors.grey.shade200,
-            child: Center(
-              child: Column(
-                mainAxisAlignment: MainAxisAlignment.center,
-                children: [
-                  Icon(
-                    Icons.picture_as_pdf,
-                    size: 80,
-                    color: Colors.grey.shade400,
-                  ),
-                  const SizedBox(height: 16),
-                  Text(
-                    'PDF 뷰어 영역',
-                    style: TextStyle(
-                      fontSize: 16,
-                      color: Colors.grey.shade600,
-                      fontWeight: FontWeight.w500,
-                    ),
-                  ),
-                  const SizedBox(height: 8),
-                  Text(
-                    '나중에 PDF 라이브러리를 연동하면\n여기에 PDF 내용이 표시됩니다.',
-                    textAlign: TextAlign.center,
-                    style: TextStyle(
-                      fontSize: 14,
-                      color: Colors.grey.shade500,
-                    ),
-                  ),
-                  const SizedBox(height: 24),
-                  // 임시 PDF 정보 표시
-                  Container(
-                    padding: const EdgeInsets.all(16),
-                    margin: const EdgeInsets.symmetric(horizontal: 40),
-                    decoration: BoxDecoration(
-                      color: Colors.white,
-                      borderRadius: BorderRadius.circular(12),
-                      border: Border.all(color: Colors.grey.shade300),
-                    ),
-                    child: Column(
-                      crossAxisAlignment: CrossAxisAlignment.start,
-                      children: [
-                        Text(
-                          '문서 정보',
-                          style: TextStyle(
-                            fontSize: 14,
-                            fontWeight: FontWeight.w600,
-                            color: Colors.grey.shade700,
-                          ),
-                        ),
-                        const SizedBox(height: 12),
-                        _buildInfoRow('문서명', widget.documentTitle),
-                        const SizedBox(height: 8),
-                        _buildInfoRow('문서 타입', widget.documentType),
-                        if (widget.documentUrl != null) ...[
-                          const SizedBox(height: 8),
-                          _buildInfoRow('URL', widget.documentUrl!),
-                        ],
-                        if (widget.documentPath != null) ...[
-                          const SizedBox(height: 8),
-                          _buildInfoRow('경로', widget.documentPath!),
-                        ],
-                      ],
-                    ),
-                  ),
-                ],
+    // 다운로드 중이면 진행률 표시
+    if (_isDownloading) {
+      return Center(
+        child: Column(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            const CircularProgressIndicator(
+              valueColor: AlwaysStoppedAnimation<Color>(AppColors.primaryColor),
+            ),
+            const SizedBox(height: 16),
+            Text(
+              'PDF 다운로드 중...',
+              style: TextStyle(
+                fontSize: 16,
+                color: Colors.grey.shade600,
               ),
             ),
-          ),
+          ],
         ),
-      ],
+      );
+    }
+
+    // 로컬 파일 경로가 있으면 PDF 표시
+    if (_localFilePath != null && _localFilePath!.isNotEmpty) {
+      print('PDF 뷰어 표시: $_localFilePath');
+      return PDFView(
+        filePath: _localFilePath!,
+        enableSwipe: true,
+        swipeHorizontal: false,
+        autoSpacing: false,
+        pageFling: false,
+        onViewCreated: (PDFViewController pdfViewController) {
+          _pdfViewController = pdfViewController;
+        },
+        onError: (error) {
+          print('PDF 로드 에러: $error');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('PDF를 불러올 수 없습니다.\n${error.toString()}'),
+                backgroundColor: Colors.red,
+                duration: const Duration(seconds: 3),
+              ),
+            );
+          }
+        },
+        onPageError: (page, error) {
+          print('PDF 페이지 에러: $page - $error');
+          if (mounted) {
+            ScaffoldMessenger.of(context).showSnackBar(
+              SnackBar(
+                content: Text('페이지를 불러올 수 없습니다: $page'),
+                backgroundColor: Colors.orange,
+                duration: const Duration(seconds: 2),
+              ),
+            );
+          }
+        },
+        onRender: (pages) {
+          print('PDF 렌더링 완료: 총 $pages 페이지');
+        },
+        onPageChanged: (int? page, int? total) {
+          if (page != null && total != null) {
+            print('PDF 페이지 변경: $page / $total');
+          }
+        },
+        onLinkHandler: (String? uri) {
+          print('PDF 링크 클릭: $uri');
+        },
+      );
+    }
+    
+    // 파일이 없는 경우 에러 메시지
+    return Center(
+      child: Column(
+        mainAxisAlignment: MainAxisAlignment.center,
+        children: [
+          Icon(
+            Icons.error_outline,
+            size: 80,
+            color: Colors.grey.shade400,
+          ),
+          const SizedBox(height: 16),
+          Text(
+            'PDF를 불러올 수 없습니다',
+            style: TextStyle(
+              fontSize: 16,
+              color: Colors.grey.shade600,
+              fontWeight: FontWeight.w500,
+            ),
+          ),
+          const SizedBox(height: 8),
+          Text(
+            '문서 URL 또는 경로가 제공되지 않았습니다.',
+            textAlign: TextAlign.center,
+            style: TextStyle(
+              fontSize: 14,
+              color: Colors.grey.shade500,
+            ),
+          ),
+        ],
+      ),
     );
   }
 

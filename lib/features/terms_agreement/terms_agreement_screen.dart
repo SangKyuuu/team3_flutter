@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import '../../data/service/api_client.dart';
 import '../home/constants/app_colors.dart';
 import '../subscription/fund_subscription_screen.dart';
 import '../fund_detail/pdf_viewer_screen.dart';
@@ -27,16 +28,14 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
   bool _isTyping = false;
   int _currentStep = 0;
 
-  // 문서 확인 상태
-  bool _checkedCoreSummary = false; // 핵심상품설명서
-  bool _checkedSimpleGuide = false; // 간이투자설명서
-  bool _checkedFullGuide = false; // 투자설명서
-  bool _checkedTerms = false; // 집합투자규약
+  // 문서 확인 상태 (3개로 변경)
+  bool _checkedCoreAndFull = false; // 핵심상품설명서 및 투자설명서
+  bool _checkedSimpleGuide = false; // 간이 투자설명서
+  bool _checkedTerms = false; // 약관
 
   bool get _allChecked =>
-      _checkedCoreSummary &&
+      _checkedCoreAndFull &&
       _checkedSimpleGuide &&
-      _checkedFullGuide &&
       _checkedTerms;
 
   @override
@@ -101,9 +100,8 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
     await _addBotMessage(
       ChatItem.documentsCard(
         onDocumentTap: _handleDocumentTap,
-        checkedCoreSummary: _checkedCoreSummary,
+        checkedCoreAndFull: _checkedCoreAndFull,
         checkedSimpleGuide: _checkedSimpleGuide,
-        checkedFullGuide: _checkedFullGuide,
         checkedTerms: _checkedTerms,
         onConfirm: _handleConfirm,
         allChecked: _allChecked,
@@ -126,12 +124,10 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
 
   bool _isDocumentChecked(String documentType) {
     switch (documentType) {
-      case 'core':
-        return _checkedCoreSummary;
+      case 'coreAndFull':
+        return _checkedCoreAndFull;
       case 'simple':
         return _checkedSimpleGuide;
-      case 'full':
-        return _checkedFullGuide;
       case 'terms':
         return _checkedTerms;
       default:
@@ -139,25 +135,77 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
     }
   }
 
+  /// 문서 URL 생성
+  /// 관리자 페이지와 동일한 경로 형식 사용
+  /// 경로: /upload/{type}/{fundCode}_{한글명}.pdf
+  /// - 약관: /upload/terms/{fundCode}_약관.pdf
+  /// - 투자설명서: /upload/invest/{fundCode}_투자설명서.pdf
+  /// - 간이투자설명서: /upload/summary/{fundCode}_간이투자설명서.pdf
+  String? _buildDocumentUrl(String documentType) {
+    if (widget.fundCode == null || widget.fundCode!.isEmpty) {
+      return null;
+    }
+
+    final fundCode = widget.fundCode!;
+    // ApiClient의 baseUrl 사용 (http://10.0.2.2:8080/bnk)
+    final baseUrl = ApiClient.dio.options.baseUrl;
+    String relativePath;
+
+    switch (documentType) {
+      case 'coreAndFull':
+        // 투자설명서 - 관리자 페이지와 동일: /upload/invest/{fundCode}_투자설명서.pdf
+        relativePath = '/upload/invest/${fundCode}_투자설명서.pdf';
+        break;
+      case 'simple':
+        // 간이투자설명서 - 관리자 페이지와 동일: /upload/summary/{fundCode}_간이투자설명서.pdf
+        relativePath = '/upload/summary/${fundCode}_간이투자설명서.pdf';
+        break;
+      case 'terms':
+        // 약관 - 관리자 페이지와 동일: /upload/terms/{fundCode}_약관.pdf
+        relativePath = '/upload/terms/${fundCode}_약관.pdf';
+        break;
+      default:
+        return null;
+    }
+
+    // 전체 URL 생성: http://10.0.2.2:8080/bnk/upload/invest/{fundCode}_투자설명서.pdf
+    return '$baseUrl$relativePath';
+  }
+
   void _showDocumentDetail(String documentType) {
     String title;
 
     switch (documentType) {
-      case 'core':
-        title = '핵심상품설명서';
-        break;
-      case 'simple':
-        title = '간이투자설명서';
-        break;
-      case 'full':
+      case 'coreAndFull':
         title = '투자설명서';
         break;
+      case 'simple':
+        title = '간이 투자설명서';
+        break;
       case 'terms':
-        title = '집합투자규약';
+        title = '약관';
         break;
       default:
         title = '문서';
     }
+
+    // 문서 URL 생성
+    final documentUrl = _buildDocumentUrl(documentType);
+
+    if (documentUrl == null) {
+      // fundCode가 없거나 문서 타입이 잘못된 경우
+      ScaffoldMessenger.of(context).showSnackBar(
+        SnackBar(
+          content: Text('$title 문서를 불러올 수 없습니다.'),
+          backgroundColor: Colors.orange,
+          duration: const Duration(seconds: 2),
+        ),
+      );
+      return;
+    }
+
+    // 디버깅: 생성된 URL 확인
+    print('문서 URL 생성: $documentUrl');
 
     // PDF 뷰어 화면으로 이동
     Navigator.push(
@@ -165,14 +213,12 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
       MaterialPageRoute(
         builder: (context) => PdfViewerScreen(
           documentTitle: title,
+          documentUrl: documentUrl,
           documentType: documentType,
           onDocumentViewed: () {
             // 문서 확인 시 체크 처리
             _markDocumentAsRead(documentType);
           },
-          // TODO: 나중에 실제 PDF URL이나 경로를 전달
-          // documentUrl: 'https://example.com/pdfs/$documentType.pdf',
-          // documentPath: 'assets/pdfs/$documentType.pdf',
         ),
       ),
     );
@@ -421,14 +467,11 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
   void _toggleDocumentCheck(String documentType, {bool forceCheck = false}) {
     setState(() {
       switch (documentType) {
-        case 'core':
-          _checkedCoreSummary = forceCheck ? true : !_checkedCoreSummary;
+        case 'coreAndFull':
+          _checkedCoreAndFull = forceCheck ? true : !_checkedCoreAndFull;
           break;
         case 'simple':
           _checkedSimpleGuide = forceCheck ? true : !_checkedSimpleGuide;
-          break;
-        case 'full':
-          _checkedFullGuide = forceCheck ? true : !_checkedFullGuide;
           break;
         case 'terms':
           _checkedTerms = forceCheck ? true : !_checkedTerms;
@@ -440,9 +483,8 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
         if (_chatItems[i].type == ChatItemType.documents) {
           _chatItems[i] = ChatItem.documentsCard(
             onDocumentTap: _handleDocumentTap,
-            checkedCoreSummary: _checkedCoreSummary,
+            checkedCoreAndFull: _checkedCoreAndFull,
             checkedSimpleGuide: _checkedSimpleGuide,
-            checkedFullGuide: _checkedFullGuide,
             checkedTerms: _checkedTerms,
             onConfirm: _handleConfirm,
             allChecked: _allChecked,
@@ -861,7 +903,7 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
               Icon(Icons.folder_outlined, color: AppColors.primaryColor, size: 22),
               const SizedBox(width: 8),
               const Text(
-                '펀드 설명서',
+                '펀드 설명서 및 약관',
                 style: TextStyle(
                   fontSize: 16,
                   fontWeight: FontWeight.w600,
@@ -871,39 +913,19 @@ class _TermsAgreementScreenState extends State<TermsAgreementScreen> {
           ),
           const SizedBox(height: 16),
           _buildDocumentItem(
-            title: '핵심상품설명서',
-            isChecked: item.checkedCoreSummary!,
-            onTap: () => item.onDocumentTap!('core'),
+            title: '투자설명서',
+            isChecked: item.checkedCoreAndFull!,
+            onTap: () => item.onDocumentTap!('coreAndFull'),
           ),
           const SizedBox(height: 10),
           _buildDocumentItem(
-            title: '간이투자설명서',
+            title: '간이 투자설명서',
             isChecked: item.checkedSimpleGuide!,
             onTap: () => item.onDocumentTap!('simple'),
           ),
           const SizedBox(height: 10),
           _buildDocumentItem(
-            title: '투자설명서',
-            isChecked: item.checkedFullGuide!,
-            onTap: () => item.onDocumentTap!('full'),
-          ),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              Icon(Icons.gavel_outlined, color: AppColors.primaryColor, size: 22),
-              const SizedBox(width: 8),
-              const Text(
-                '상품 이용 약관',
-                style: TextStyle(
-                  fontSize: 16,
-                  fontWeight: FontWeight.w600,
-                ),
-              ),
-            ],
-          ),
-          const SizedBox(height: 16),
-          _buildDocumentItem(
-            title: '집합투자규약',
+            title: '약관',
             isChecked: item.checkedTerms!,
             onTap: () => item.onDocumentTap!('terms'),
           ),
@@ -977,9 +999,8 @@ class ChatItem {
   final String? title;
   final String? description;
   final void Function(String)? onDocumentTap;
-  final bool? checkedCoreSummary;
+  final bool? checkedCoreAndFull;
   final bool? checkedSimpleGuide;
-  final bool? checkedFullGuide;
   final bool? checkedTerms;
   final VoidCallback? onConfirm;
   final bool? allChecked;
@@ -992,9 +1013,8 @@ class ChatItem {
     this.title,
     this.description,
     this.onDocumentTap,
-    this.checkedCoreSummary,
+    this.checkedCoreAndFull,
     this.checkedSimpleGuide,
-    this.checkedFullGuide,
     this.checkedTerms,
     this.onConfirm,
     this.allChecked,
@@ -1022,9 +1042,8 @@ class ChatItem {
 
   factory ChatItem.documentsCard({
     required void Function(String) onDocumentTap,
-    required bool checkedCoreSummary,
+    required bool checkedCoreAndFull,
     required bool checkedSimpleGuide,
-    required bool checkedFullGuide,
     required bool checkedTerms,
     required VoidCallback onConfirm,
     required bool allChecked,
@@ -1032,9 +1051,8 @@ class ChatItem {
     return ChatItem(
       type: ChatItemType.documents,
       onDocumentTap: onDocumentTap,
-      checkedCoreSummary: checkedCoreSummary,
+      checkedCoreAndFull: checkedCoreAndFull,
       checkedSimpleGuide: checkedSimpleGuide,
-      checkedFullGuide: checkedFullGuide,
       checkedTerms: checkedTerms,
       onConfirm: onConfirm,
       allChecked: allChecked,
