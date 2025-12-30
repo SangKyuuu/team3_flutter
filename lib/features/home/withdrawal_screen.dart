@@ -39,12 +39,6 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
     super.dispose();
   }
 
-  void _onWithdrawAllPressed() {
-    setState(() {
-      _amountController.text = _availableBalance;
-    });
-  }
-
   bool get _canProceed {
     final amount = _amountController.text;
     if (amount.isEmpty) return false;
@@ -150,20 +144,6 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                       color: Colors.grey.shade600,
                     ),
                     textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  // 모두 출금 옵션
-                  InkWell(
-                    onTap: _onWithdrawAllPressed,
-                    child: Text(
-                      '$_availableBalance원 모두 출금',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.primaryColor,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
                   ),
                 ],
               ),
