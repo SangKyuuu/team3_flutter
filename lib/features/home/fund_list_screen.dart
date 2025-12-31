@@ -49,12 +49,55 @@ class _FundListScreenState extends State<FundListScreen> {
     }
     
     // 초기 데이터는 메인 화면에서 전달받은 데이터 사용
-    _funds = widget.funds;
+    List<FundData> initialFunds = widget.funds;
+    
+    // 수익률 best인 경우 수익률 기준으로 정렬
+    if (categoryTitle == '수익률 best' && initialFunds.isNotEmpty) {
+      initialFunds = _sortByYield(initialFunds);
+    }
+    
+    _funds = initialFunds;
     
     // 초기 데이터가 비어있으면 API 호출
     if (_funds.isEmpty) {
       _loadFunds();
     }
+  }
+
+  /// 수익률 기준으로 펀드 목록 정렬 (내림차순)
+  List<FundData> _sortByYield(List<FundData> funds) {
+    final sorted = List<FundData>.from(funds)..sort((a, b) {
+      // yieldText에서 숫자 추출 (예: "5.25%" -> 5.25)
+      double getYieldValue(String yieldText) {
+        if (yieldText == '—' || yieldText.isEmpty) {
+          return -999.0; // 가장 낮은 값으로 처리
+        }
+        // "%" 제거하고 숫자 추출
+        final cleaned = yieldText.replaceAll('%', '').trim();
+        return double.tryParse(cleaned) ?? -999.0;
+      }
+      
+      final yieldA = getYieldValue(a.yieldText);
+      final yieldB = getYieldValue(b.yieldText);
+      
+      // 내림차순 정렬 (높은 수익률이 먼저)
+      return yieldB.compareTo(yieldA);
+    });
+    
+    // 정렬 후 순위 라벨 업데이트
+    return sorted.asMap().entries.map((entry) {
+      final index = entry.key;
+      final fund = entry.value;
+      return FundData(
+        title: fund.title,
+        subtitle: fund.subtitle,
+        rankLabel: '${index + 1}위',
+        badge: fund.badge,
+        badge2: fund.badge2,
+        yieldText: fund.yieldText,
+        fundCode: fund.fundCode,
+      );
+    }).toList();
   }
 
   /// 카테고리별 펀드 목록을 API에서 가져오기
@@ -67,8 +110,14 @@ class _FundListScreenState extends State<FundListScreen> {
       
       final funds = await FundApi.getFundsByCategory(apiCategory);
       
+      // 수익률 best인 경우 수익률 기준으로 내림차순 정렬
+      List<FundData> sortedFunds = funds;
+      if (selectedCategory == '수익률 best') {
+        sortedFunds = _sortByYield(funds);
+      }
+      
       setState(() {
-        _funds = funds;
+        _funds = sortedFunds;
         _isLoading = false;
       });
     } catch (e) {

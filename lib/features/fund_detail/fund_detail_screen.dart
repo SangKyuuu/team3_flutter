@@ -31,7 +31,19 @@ class FundDetailScreen extends StatefulWidget {
 
 class _FundDetailScreenState extends State<FundDetailScreen> {
   int _selectedPeriod = 0;
-  final List<String> _periods = ['3개월', '6개월', '1년', '3년'];
+  final List<String> _periods = ['1개월', '3개월', '6개월', '12개월'];
+  
+  // 수익률 데이터 생성 (fund_card.dart와 동일한 로직)
+  Map<String, double> get _yieldData {
+    // yieldText를 기반으로 수익률 데이터 생성
+    final baseYield = double.tryParse(widget.yieldText.replaceAll('%', '').replaceAll('—', '0').trim()) ?? 0.0;
+    return {
+      '1개월': baseYield * 0.6,
+      '3개월': baseYield,
+      '6개월': baseYield * 2.3,
+      '12개월': baseYield * 5.4,
+    };
+  }
 
   // 샘플 자산 구성 데이터 (파란색과 조화로운 부드러운 색상 팔레트)
   final List<AssetComposition> _assets = [
@@ -199,22 +211,94 @@ class _FundDetailScreenState extends State<FundDetailScreen> {
   }
 
   Widget _buildChartArea() {
-    // 샘플 데이터 - 우상향 수익률 곡선
-    final List<FlSpot> spots = [
-      const FlSpot(0, 1.0),
-      const FlSpot(1, 1.2),
-      const FlSpot(2, 1.1),
-      const FlSpot(3, 1.4),
-      const FlSpot(4, 1.3),
-      const FlSpot(5, 1.5),
-      const FlSpot(6, 1.6),
-      const FlSpot(7, 1.55),
-      const FlSpot(8, 1.7),
-      const FlSpot(9, 1.65),
-      const FlSpot(10, 1.8),
-      const FlSpot(11, 1.9),
-      const FlSpot(12, 2.0),
-    ];
+    // 선택된 기간에 따라 그래프 데이터 생성
+    final selectedPeriod = _periods[_selectedPeriod];
+    final yields = _yieldData;
+    
+    // 선택된 기간까지의 수익률 데이터로 그래프 생성
+    List<FlSpot> spots = [];
+    double maxY = 0;
+    double minY = 0;
+    
+    if (selectedPeriod == '1개월') {
+      // 1개월: 0일부터 30일까지 (4주)
+      final yield1M = yields['1개월']!;
+      for (int i = 0; i <= 30; i++) {
+        // 점진적으로 증가하는 곡선
+        final progress = i / 30.0;
+        final y = yield1M * progress;
+        spots.add(FlSpot(i.toDouble(), y));
+        maxY = y > maxY ? y : maxY;
+      }
+    } else if (selectedPeriod == '3개월') {
+      // 3개월: 0일부터 90일까지 (12주)
+      final yield1M = yields['1개월']!;
+      final yield3M = yields['3개월']!;
+      for (int i = 0; i <= 90; i += 3) {
+        // 1개월까지는 yield1M, 그 이후는 yield3M으로 증가
+        double y;
+        if (i <= 30) {
+          y = yield1M * (i / 30.0);
+        } else {
+          final progress = (i - 30) / 60.0;
+          y = yield1M + (yield3M - yield1M) * progress;
+        }
+        spots.add(FlSpot(i.toDouble(), y));
+        maxY = y > maxY ? y : maxY;
+      }
+    } else if (selectedPeriod == '6개월') {
+      // 6개월: 0일부터 180일까지 (24주)
+      final yield1M = yields['1개월']!;
+      final yield3M = yields['3개월']!;
+      final yield6M = yields['6개월']!;
+      for (int i = 0; i <= 180; i += 5) {
+        double y;
+        if (i <= 30) {
+          y = yield1M * (i / 30.0);
+        } else if (i <= 90) {
+          final progress = (i - 30) / 60.0;
+          y = yield1M + (yield3M - yield1M) * progress;
+        } else {
+          final progress = (i - 90) / 90.0;
+          y = yield3M + (yield6M - yield3M) * progress;
+        }
+        spots.add(FlSpot(i.toDouble(), y));
+        maxY = y > maxY ? y : maxY;
+      }
+    } else if (selectedPeriod == '12개월') {
+      // 12개월: 0일부터 365일까지
+      final yield1M = yields['1개월']!;
+      final yield3M = yields['3개월']!;
+      final yield6M = yields['6개월']!;
+      final yield12M = yields['12개월']!;
+      for (int i = 0; i <= 365; i += 10) {
+        double y;
+        if (i <= 30) {
+          y = yield1M * (i / 30.0);
+        } else if (i <= 90) {
+          final progress = (i - 30) / 60.0;
+          y = yield1M + (yield3M - yield1M) * progress;
+        } else if (i <= 180) {
+          final progress = (i - 90) / 90.0;
+          y = yield3M + (yield6M - yield3M) * progress;
+        } else {
+          final progress = (i - 180) / 185.0;
+          y = yield6M + (yield12M - yield6M) * progress;
+        }
+        spots.add(FlSpot(i.toDouble(), y));
+        maxY = y > maxY ? y : maxY;
+      }
+    }
+    
+    // Y축 범위 설정 (여유 공간 추가)
+    minY = 0;
+    maxY = maxY * 1.2; // 20% 여유 공간
+    
+    // X축 최대값 설정
+    double maxX = selectedPeriod == '1개월' ? 30 
+        : selectedPeriod == '3개월' ? 90 
+        : selectedPeriod == '6개월' ? 180 
+        : 365;
 
     return Container(
       height: 150,
@@ -224,7 +308,7 @@ class _FundDetailScreenState extends State<FundDetailScreen> {
           gridData: FlGridData(
             show: true,
             drawVerticalLine: false,
-            horizontalInterval: 0.5,
+            horizontalInterval: maxY / 4,
             getDrawingHorizontalLine: (value) {
               return FlLine(
                 color: Colors.grey.shade200,
@@ -236,17 +320,19 @@ class _FundDetailScreenState extends State<FundDetailScreen> {
           titlesData: const FlTitlesData(show: false),
           borderData: FlBorderData(show: false),
           minX: 0,
-          maxX: 12,
-          minY: 0.5,
-          maxY: 2.5,
+          maxX: maxX,
+          minY: minY,
+          maxY: maxY,
           lineTouchData: LineTouchData(
             touchTooltipData: LineTouchTooltipData(
               getTooltipColor: (touchedSpot) => Colors.white,
               tooltipBorder: BorderSide(color: Colors.grey.shade300),
               getTooltipItems: (touchedSpots) {
                 return touchedSpots.map((spot) {
+                  final yieldValue = spot.y;
+                  final sign = yieldValue >= 0 ? '+' : '';
                   return LineTooltipItem(
-                    '+${((spot.y - 1) * 100).toStringAsFixed(2)}%',
+                    '$sign${yieldValue.toStringAsFixed(2)}%',
                     TextStyle(
                       color: AppColors.primaryColor,
                       fontWeight: FontWeight.w600,
