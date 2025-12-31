@@ -4,6 +4,7 @@ import '../../home/constants/app_colors.dart';
 import '../../../data/service/mock_api.dart';
 import 'package:fl_chart/fl_chart.dart';
 import 'dart:async';
+import 'mock_ai_report_screen.dart';
 
 class MockDashboardScreen extends StatefulWidget {
   const MockDashboardScreen({super.key});
@@ -13,13 +14,16 @@ class MockDashboardScreen extends StatefulWidget {
 }
 
 class _MockDashboardScreenState extends State<MockDashboardScreen> {
+  //테스트를 위한 고정 고객 번호 (로그인 기능 완성 전까지 사용)
+  static const int testCustNo = 18;
+  String _userName = "고객";
+
   bool _isLoading = true;
   bool _hasError = false;
   double _totalAsset = 0;
   double _profitRate = 0;
   List<dynamic> _myFunds = [];
 
-  // 자동 스크롤을 위한 컨트롤러와 타이머
   final ScrollController _tickerController = ScrollController();
   Timer? _tickerTimer;
 
@@ -27,29 +31,26 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
   void initState() {
     super.initState();
     _loadDashboardData();
-    _startTickerAnimation(); // 티커 애니메이션 시작
+    _startTickerAnimation();
   }
 
   @override
   void dispose() {
-    _tickerTimer?.cancel(); // 메모리 누수 방지
+    _tickerTimer?.cancel();
     _tickerController.dispose();
     super.dispose();
   }
 
-  // 자동 스크롤 로직
   void _startTickerAnimation() {
     _tickerTimer = Timer.periodic(const Duration(milliseconds: 50), (timer) {
       if (_tickerController.hasClients) {
         double maxScroll = _tickerController.position.maxScrollExtent;
         double currentScroll = _tickerController.offset;
-
-        // 끝에 도달하면 다시 처음으로 점프 (무한 루프 느낌)
         if (currentScroll >= maxScroll) {
           _tickerController.jumpTo(0);
         } else {
           _tickerController.animateTo(
-            currentScroll + 1, // 1픽셀씩 이동
+            currentScroll + 1,
             duration: const Duration(milliseconds: 50),
             curve: Curves.linear,
           );
@@ -61,27 +62,26 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
   Future<void> _loadDashboardData() async {
     setState(() {
       _isLoading = true;
-      _hasError = false; // 시작할 때 에러 상태 초기화
+      _hasError = false;
     });
 
     try {
-      final data = await MockApi.getMockDashboardSummary();
+      final data = await MockApi.getMockDashboardSummary(testCustNo);
       if (data != null) {
         setState(() {
           _totalAsset = data['totalAsset']?.toDouble() ?? 0;
           _profitRate = data['profitRate']?.toDouble() ?? 0;
           _myFunds = data['funds'] ?? [];
+          _userName = data['userName'] ?? "고객";
           _isLoading = false;
         });
       } else {
-        // 데이터가 비어있거나 응답이 비정상일 때
         setState(() {
           _hasError = true;
           _isLoading = false;
         });
       }
     } catch (e) {
-      // 네트워크 연결 실패 등 예외 발생 시
       setState(() {
         _hasError = true;
         _isLoading = false;
@@ -91,7 +91,6 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
 
   List<PieChartSectionData> _getSections() {
     if (_myFunds.isEmpty) {
-      // 펀드가 없을 때는 현금 100% 표시
       return [
         PieChartSectionData(
           color: AppColors.primaryColor,
@@ -102,13 +101,11 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
         ),
       ];
     }
-
-    // 펀드가 있을 경우: (이해를 돕기 위한 예시 로직)
     return _myFunds.asMap().entries.map((entry) {
       int idx = entry.key;
       var fund = entry.value;
       return PieChartSectionData(
-        color: Colors.primaries[idx % Colors.primaries.length], // 펀드별 다른 색상
+        color: Colors.primaries[idx % Colors.primaries.length],
         value: fund['ratio'].toDouble(),
         title: '${fund['ratio']}%',
         radius: 50,
@@ -120,6 +117,9 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
   @override
   Widget build(BuildContext context) {
     final Color trendColor = _profitRate >= 0 ? Colors.redAccent : Colors.blueAccent;
+
+    // 👈 에러 발생 시 에러 뷰를 보여주도록 처리 추가
+    if (_hasError) return Scaffold(body: _buildErrorView());
 
     return Scaffold(
       backgroundColor: const Color(0xFFF8F9FB),
@@ -133,7 +133,7 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
           ? const Center(child: CircularProgressIndicator())
           : Column(
         children: [
-          _buildMarketTicker(), // 자동 스크롤 티커
+          _buildMarketTicker(),
           const Divider(height: 1, thickness: 0.5),
           Expanded(
             child: RefreshIndicator(
@@ -145,7 +145,7 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
                   children: [
                     _buildSummaryCard(trendColor),
                     const SizedBox(height: 20),
-                    _buildAIDiagnosisBanner(), // AI 배너
+                    _buildAIDiagnosisBanner(), // 👈 AI 배너 터치 가능하게 수정됨
                     const SizedBox(height: 32),
                     const Text('보유 펀드 내역',
                         style: TextStyle(fontSize: 18, fontWeight: FontWeight.bold)),
@@ -219,7 +219,7 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
                       const FlSpot(2, 1.1),
                       const FlSpot(3, 1.3),
                       const FlSpot(4, 1.2),
-                      const FlSpot(5, 1.5), // 현재는 더미 데이터, 나중에 DB와 연동
+                      const FlSpot(5, 1.5),
                     ],
                     isCurved: true,
                     color: trendColor,
@@ -258,9 +258,7 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
           ),
           const SizedBox(height: 20),
           ElevatedButton(
-            onPressed: () {
-              // 펀드 목록 화면으로 이동 로직
-            },
+            onPressed: () {},
             style: ElevatedButton.styleFrom(
               backgroundColor: AppColors.primaryColor.withOpacity(0.1),
               foregroundColor: AppColors.primaryColor,
@@ -277,7 +275,13 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
   Widget _buildAIDiagnosisBanner() {
     return GestureDetector(
       onTap: () {
-        // AI 진단 로직 연결 예정
+        // AI 리포트 화면으로 이동하며 18번 전달
+        Navigator.push(
+          context,
+          MaterialPageRoute(
+            builder: (context) => MockAiReportScreen(custNo: testCustNo, userName: _userName,),
+          ),
+        );
       },
       child: Container(
         padding: const EdgeInsets.all(20),
@@ -291,7 +295,8 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
         ),
         child: Row(
           children: [
-            Image.asset('assets/images/bot-message-square.png', width: 40, height: 40, color: Colors.white), //
+            // 👈 이미지 에셋이 없어도 에러나지 않게 아이콘으로 대체 처리
+            const Icon(Icons.auto_awesome, color: Colors.white, size: 40),
             const SizedBox(width: 16),
             const Expanded(
               child: Column(
@@ -321,17 +326,25 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
       child: Row(
         mainAxisAlignment: MainAxisAlignment.spaceBetween,
         children: [
-          Column(
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(fund['name'], style: const TextStyle(fontWeight: FontWeight.w600)),
-              Text('비중 ${fund['ratio']}%', style: const TextStyle(color: Colors.grey, fontSize: 12)),
-            ],
+          Expanded(
+            child: Column(
+              crossAxisAlignment: CrossAxisAlignment.start,
+              children: [
+                Text(
+                  fund['name'] ?? '펀드명 없음',
+                  style: const TextStyle(fontWeight: FontWeight.w600),
+                  overflow: TextOverflow.ellipsis,
+                  maxLines: 1,
+                ),
+                Text('비중 ${fund['ratio']}%', style: const TextStyle(color: Colors.grey, fontSize: 12)),
+              ],
+            ),
           ),
+          const SizedBox(width: 12),
           Text(
-            '${fund['profit'] >= 0 ? '+' : ''}${fund['profit']}%',
+            '${(fund['profit'] ?? 0) >= 0 ? '+' : ''}${fund['profit']}%',
             style: TextStyle(
-              color: fund['profit'] >= 0 ? Colors.redAccent : Colors.blueAccent,
+              color: (fund['profit'] ?? 0) >= 0 ? Colors.redAccent : Colors.blueAccent,
               fontWeight: FontWeight.bold,
             ),
           ),
@@ -340,24 +353,20 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
     );
   }
 
-  //시장 지수 티커 위젯
   Widget _buildMarketTicker() {
-    // 무한 루프처럼 보이게 하기 위해 리스트를 복사
     final doubleList = [...mockIndices, ...mockIndices, ...mockIndices];
-
     return Container(
       height: 50,
       color: Colors.white,
       child: ListView.builder(
-        controller: _tickerController, // 컨트롤러 연결
+        controller: _tickerController,
         scrollDirection: Axis.horizontal,
-        physics: const NeverScrollableScrollPhysics(), // 사용자가 직접 스크롤하지 못하게 함
+        physics: const NeverScrollableScrollPhysics(),
         padding: const EdgeInsets.symmetric(horizontal: 16),
         itemCount: doubleList.length,
         itemBuilder: (context, index) {
           final item = doubleList[index];
           final Color color = item.isUp ? Colors.red : Colors.blue;
-
           return Container(
             margin: const EdgeInsets.only(right: 32),
             child: Row(
@@ -376,73 +385,6 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
     );
   }
 
-  //파이 차트 위젯
-  Widget _buildPortfolioChart() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(24),
-        boxShadow: [BoxShadow(color: Colors.black.withOpacity(0.03), blurRadius: 10)],
-      ),
-      child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
-        children: [
-          const Text('자산 구성 비중', style: TextStyle(fontSize: 16, fontWeight: FontWeight.bold)),
-          const SizedBox(height: 20),
-          Row(
-            children: [
-              // 파이 차트 영역
-              SizedBox(
-                width: 130,
-                height: 130,
-                child: PieChart(
-                  PieChartData(
-                    sectionsSpace: 2,
-                    centerSpaceRadius: 40, // 도넛 모양으로 만들기
-                    sections: _getSections(),
-                  ),
-                ),
-              ),
-              const SizedBox(width: 30),
-              // 범례 영역
-              Expanded(
-                child: Column(
-                  crossAxisAlignment: CrossAxisAlignment.start,
-                  children: _myFunds.isEmpty
-                      ? [_buildLegendItem(AppColors.primaryColor, '현금(예치금)')]
-                      : _myFunds.asMap().entries.map((e) =>
-                      _buildLegendItem(Colors.primaries[e.key % Colors.primaries.length], e.value['name'])
-                  ).toList(),
-                ),
-              ),
-            ],
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 범례 아이템 빌더
-  Widget _buildLegendItem(Color color, String label) {
-    return Padding(
-      padding: const EdgeInsets.symmetric(vertical: 4),
-      child: Row(
-        children: [
-          Container(width: 12, height: 12, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-          const SizedBox(width: 8),
-          Expanded(
-            child: Text(label,
-              style: const TextStyle(fontSize: 13, color: Colors.black87),
-              overflow: TextOverflow.ellipsis,
-            ),
-          ),
-        ],
-      ),
-    );
-  }
-
-  // 에러 발생 시 보여줄 화면 위젯
   Widget _buildErrorView() {
     return Center(
       child: Column(
@@ -450,23 +392,11 @@ class _MockDashboardScreenState extends State<MockDashboardScreen> {
         children: [
           Icon(Icons.wifi_off_rounded, size: 64, color: Colors.grey.shade400),
           const SizedBox(height: 16),
-          const Text(
-            '데이터를 불러올 수 없습니다',
-            style: TextStyle(fontSize: 16, color: Colors.black87, fontWeight: FontWeight.w500),
-          ),
-          const SizedBox(height: 8),
-          const Text(
-            '네트워크 연결 상태를 확인해주세요.',
-            style: TextStyle(fontSize: 14, color: Colors.grey),
-          ),
+          const Text('데이터를 불러올 수 없습니다', style: TextStyle(fontSize: 16, fontWeight: FontWeight.w500)),
           const SizedBox(height: 24),
           ElevatedButton(
-            onPressed: _loadDashboardData, // 다시 시도 버튼
-            style: ElevatedButton.styleFrom(
-              backgroundColor: AppColors.primaryColor,
-              foregroundColor: Colors.white,
-              shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(10)),
-            ),
+            onPressed: _loadDashboardData,
+            style: ElevatedButton.styleFrom(backgroundColor: AppColors.primaryColor, foregroundColor: Colors.white),
             child: const Text('다시 시도'),
           ),
         ],
