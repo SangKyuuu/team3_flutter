@@ -454,6 +454,48 @@ class _FundSubscriptionScreenState extends State<FundSubscriptionScreen> {
       return;
     }
     
+    // 전자서명 다이얼로그 표시
+    final password = await showPasswordInputDialog(
+      context: context,
+      title: '전자서명',
+      description: '펀드 가입을 완료하려면\n비밀번호를 입력해주세요.',
+    );
+    
+    if (password == null || password.isEmpty) {
+      // 취소한 경우
+      await _addBotMessage(
+        ChatItem.textMessage('전자서명이 취소되었어요.\n"확인" 버튼을 다시 눌러주시면 전자서명을 이어서 진행할 수 있어요.'),
+      );
+      // 최종 확인 카드 다시 표시
+      await _addBotMessage(
+        ChatItem.summaryCard(
+          fundName: widget.fundTitle,
+          amount: _investmentAmount!,
+          investmentType: _getInvestmentTypeText(),
+          accountInfo: '내 통장 (1234)',
+          onSubmit: _handleFinalSubmit,
+        ),
+      );
+      return;
+    }
+    
+    // 전자서명 생성 (펀드 가입용)
+    // 백엔드와 동일한 고객 번호 사용 (CUST_NO: 18)
+    _signature = SignatureService.createSignature(
+      userId: '18',  // CUST_NO (고객 번호)
+      productName: widget.fundTitle,
+      investmentAmount: _investmentAmount!,
+      password: password,
+      deviceInfo: 'Flutter App',
+    );
+    
+    // 전자서명 완료 메시지
+    await _addBotMessage(
+      ChatItem.textMessage('전자서명이 완료되었습니다.'),
+    );
+    
+    await Future.delayed(const Duration(milliseconds: 600));
+    
     // 펀드 가입 API 호출
     await _addBotMessage(
       ChatItem.textMessage('펀드 가입을 처리 중입니다... ⚙️'),
