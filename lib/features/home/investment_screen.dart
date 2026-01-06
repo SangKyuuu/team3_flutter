@@ -3,14 +3,18 @@ import 'constants/app_colors.dart';
 import 'investment_confirmation_screen.dart';
 
 class InvestmentScreen extends StatefulWidget {
-  const InvestmentScreen({super.key});
 
-  static void show(BuildContext context) {
+  const InvestmentScreen({
+    super.key,
+  });
+
+  static void show(BuildContext context,) {
     showModalBottomSheet(
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => const InvestmentScreen(),
+      builder: (context) => InvestmentScreen(
+      ),
     );
   }
 

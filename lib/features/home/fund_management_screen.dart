@@ -3,7 +3,9 @@ import 'constants/app_colors.dart';
 import 'fund_detail_screen.dart';
 
 class FundManagementScreen extends StatelessWidget {
-  const FundManagementScreen({super.key});
+  const FundManagementScreen({
+    super.key,
+  });
 
   @override
   Widget build(BuildContext context) {
@@ -82,7 +84,7 @@ class FundManagementScreen extends StatelessWidget {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => const FundDetailScreen(
+                    builder: (context) => FundDetailScreen(
                       title: '한국 대표 주식에 투자하기',
                       fundName: '교보악사파워인덱스증권자투자신탁1호(주식)Ce',
                     ),
@@ -101,7 +103,7 @@ class FundManagementScreen extends StatelessWidget {
               onTap: () {
                 Navigator.of(context).push(
                   MaterialPageRoute(
-                    builder: (context) => const FundDetailScreen(
+                    builder: (context) => FundDetailScreen(
                       title: '미국 공모주 쉽게 투자하기',
                       fundName: '우리미국단기채공모주증권자투자신탁1호UH(채권혼)Ce',
                     ),

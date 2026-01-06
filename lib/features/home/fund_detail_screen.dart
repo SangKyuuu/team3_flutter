@@ -15,6 +15,7 @@ class FundDetailScreen extends StatefulWidget {
   final String title;
   final String fundName;
 
+
   @override
   State<FundDetailScreen> createState() => _FundDetailScreenState();
 }

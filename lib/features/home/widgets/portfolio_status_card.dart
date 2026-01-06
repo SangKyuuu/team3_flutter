@@ -4,7 +4,9 @@ import '../fund_management_screen.dart';
 import '../investment_tendency_info_screen.dart';
 
 class PortfolioStatusCard extends StatelessWidget {
-  const PortfolioStatusCard({super.key});
+  const PortfolioStatusCard({super.key, required this.custName,});
+
+  final String custName;
 
   @override
   Widget build(BuildContext context) {

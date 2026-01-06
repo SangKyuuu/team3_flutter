@@ -5,12 +5,14 @@ class AuthApi {
     final response = await ApiClient.dio.post(
       '/api/auth/login',
       data: {
-        'userId': userId,
+        'username': userId,
         'password': password,
       },
     );
 
-    return response.data['accessToken'];
+    print('🔥 login response = ${response.data}');
+
+    return response.data['token'];
   }
 
   static Future<void> me() async {
