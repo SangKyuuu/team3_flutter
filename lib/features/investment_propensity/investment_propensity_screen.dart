@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:dio/dio.dart';
 import '../home/constants/app_colors.dart';
 import '../subscription/widgets/password_input_dialog.dart';
 import '../subscription/services/signature_service.dart';
@@ -44,21 +45,11 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
   }
 
   /// 서버에 오늘 조사 완료 여부 확인 후 설문 시작 또는 기존 결과 표시
-  /// 
-  /// TODO: 백엔드 API 구현 후 아래 주석 해제하고 실제 호출
   Future<void> _checkAndStartSurvey() async {
-    // TODO: 백엔드 API 구현 후 아래 코드 활성화
-    /*
     try {
-      // TODO: 실제 로그인된 사용자 정보 가져오기
-      // 예: AuthApi.me() 또는 사용자 정보 저장소에서 가져오기
-      // final userInfo = await AuthApi.getUserInfo();
-      // final custNo = userInfo['custNo'];
-      // final userId = userInfo['userId'];
-      
-      // 임시로 테스트용 값 사용 (실제 구현 시 위의 코드로 교체)
-      final int custNo = 1; // TODO: 실제 고객 번호 사용
-      final String? userId = null; // TODO: 실제 사용자 ID 사용
+      // 백엔드와 동일한 고객 번호 사용 (CUST_NO: 18)
+      final int custNo = 18;
+      final String? userId = null;
       
       // 서버에 오늘 조사했는지 확인 요청
       final result = await RiskTestApi.checkToday(
@@ -82,10 +73,6 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
       print('투자성향 조사 확인 중 에러 발생: $e');
       await _startSurvey();
     }
-    */
-    
-    // 임시: 항상 설문 시작 (백엔드 API 구현 전까지)
-    await _startSurvey();
   }
 
   /// 기존 조사 결과 표시 (오늘 이미 완료한 경우)
@@ -462,8 +449,9 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
       }
       
       // 전자서명 생성 (성향분포 조사용)
+      // 백엔드와 동일한 고객 번호 사용 (CUST_NO: 18)
       final signature = SignatureService.createSignature(
-        userId: 'USER_001',  // 실제로는 로그인된 사용자 ID
+        userId: '18',  // CUST_NO (고객 번호)
         productName: '투자성향 조사',
         investmentAmount: 0,  // 성향분포는 금액이 없으므로 0
         password: password,
@@ -478,20 +466,39 @@ class _InvestmentPropensityScreenState extends State<InvestmentPropensityScreen>
       // 투자성향 조사 결과를 서버에 저장
       try {
         if (_resultType != null) {
+          print('=== 투자성향 조사 결과 저장 시작 ===');
+          print('totalScore: $_totalScore');
+          print('riskType: $_resultType');
+          
           final success = await RiskTestApi.saveTestResult(
             totalScore: _totalScore,
             riskType: _resultType!,
           );
           
           if (success) {
-            print('투자성향 조사 결과 저장 완료');
+            print('✅ 투자성향 조사 결과 저장 완료');
           } else {
-            print('투자성향 조사 결과 저장 실패: success=false');
+            print('❌ 투자성향 조사 결과 저장 실패: success=false');
+          }
+        } else {
+          print('⚠️ _resultType이 null이어서 저장하지 않음');
+        }
+      } on DioException catch (e) {
+        print('❌ 투자성향 조사 결과 저장 실패 (DioException): ${e.message}');
+        print('에러 응답 상태 코드: ${e.response?.statusCode}');
+        print('에러 응답 데이터: ${e.response?.data}');
+        
+        // "오늘은 이미 투자성향 조사를 완료했습니다" 메시지인 경우
+        if (e.response?.data != null && e.response!.data is Map) {
+          final errorData = e.response!.data as Map<String, dynamic>;
+          final message = errorData['message'] as String? ?? '';
+          if (message.contains('이미 투자성향 조사를 완료')) {
+            print('⚠️ 오늘 이미 조사 완료 - 정상 동작');
           }
         }
+        // 사용자에게는 에러를 표시하지 않고 계속 진행
       } catch (e) {
-        // DB 저장 실패 시에도 계속 진행 (에러 로깅만)
-        print('투자성향 조사 결과 저장 실패: $e');
+        print('❌ 투자성향 조사 결과 저장 실패: $e');
         // 사용자에게는 에러를 표시하지 않고 계속 진행
       }
       
