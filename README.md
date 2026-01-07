@@ -166,7 +166,3 @@ lib/
             ├── mock_ai_report_screen.dart     # AI 투자 리포트
             ├── mock_diagnosis_result_screen.dart
             └── mock_account_create_screen.dart
-
----
-
-
