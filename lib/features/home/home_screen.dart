@@ -7,7 +7,10 @@ import 'widgets/home_main_content.dart';
 import 'fund_management_screen.dart';
 
 class HomeScreen extends StatefulWidget {
-  const HomeScreen({super.key});
+  const HomeScreen({
+    super.key,
+  });
+
 
   @override
   State<HomeScreen> createState() => _HomeScreenState();
@@ -58,7 +61,8 @@ class _HomeScreenState extends State<HomeScreen> {
             onTap: () {
               Navigator.of(context).push(
                 MaterialPageRoute(
-                  builder: (context) => const FundManagementScreen(),
+                  builder: (context) => FundManagementScreen(
+                  ),
                 ),
               );
             },

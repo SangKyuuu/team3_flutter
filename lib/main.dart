@@ -1,8 +1,16 @@
 import 'package:flutter/material.dart';
+import 'package:webview_flutter_platform_interface/webview_flutter_platform_interface.dart';
+import 'package:webview_flutter_android/webview_flutter_android.dart';
 import 'common/app_routes.dart';
 
 
+
 void main() {
+
+  WidgetsFlutterBinding.ensureInitialized();
+
+  WebViewPlatform.instance = AndroidWebViewPlatform();
+
   runApp(const MyApp());
 }
 

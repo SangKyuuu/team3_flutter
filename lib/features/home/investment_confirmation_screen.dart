@@ -1,12 +1,12 @@
 import 'package:flutter/material.dart';
 import 'constants/app_colors.dart';
 import 'password_input_screen.dart';
-import 'investment_success_screen.dart';
 
 class InvestmentConfirmationScreen extends StatefulWidget {
   const InvestmentConfirmationScreen({
     super.key,
     required this.amount,
+
   });
 
   final String amount;
@@ -16,7 +16,10 @@ class InvestmentConfirmationScreen extends StatefulWidget {
       context: context,
       isScrollControlled: true,
       backgroundColor: Colors.transparent,
-      builder: (context) => InvestmentConfirmationScreen(amount: amount),
+      builder: (context) =>
+          InvestmentConfirmationScreen(
+            amount: amount,
+          ),
     );
   }
 
@@ -24,12 +27,23 @@ class InvestmentConfirmationScreen extends StatefulWidget {
   State<InvestmentConfirmationScreen> createState() => _InvestmentConfirmationScreenState();
 }
 
-class _InvestmentConfirmationScreenState extends State<InvestmentConfirmationScreen> {
-  String _selectedAccount = '설유진의 통장 (5081)';
-  final List<String> _accounts = [
-    '설유진의 통장 (5081)',
-    '설유진의 통장 (1234)',
-  ];
+class _InvestmentConfirmationScreenState
+    extends State<InvestmentConfirmationScreen> {
+
+  late String _selectedAccount;
+  late List<String> _accounts;
+
+  @override
+  void initState() {
+    super.initState();
+
+    _accounts = [
+      '설유진의 통장 (5081)',
+      '설유진의 통장 (1234)',
+    ];
+
+    _selectedAccount = _accounts.first;
+  }
 
   // 완료예정일 계산 (오늘로부터 3일 후)
   String get _completionDate {

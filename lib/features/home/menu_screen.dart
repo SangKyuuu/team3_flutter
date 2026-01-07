@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 import 'package:team3/features/cs/cs_chatbot_screen.dart';
 
 import '../../data/service/mock_api.dart';
+import '../../data/service/token_storage.dart';
 import '../cs/cs_main_screen.dart';
 import 'constants/app_colors.dart';
 import 'personal_info_screen.dart';
@@ -14,6 +15,24 @@ class MenuScreen extends StatefulWidget {
 }
 
 class _MenuScreenState extends State<MenuScreen> {
+
+  ///  로그아웃 처리
+  Future<void> _logout() async {
+    // 1. 토큰 삭제
+    await TokenStorage.clearToken();
+
+    if (!mounted) return;
+
+    // 2. Drawer 닫기
+    Navigator.of(context).pop();
+
+    // 3. 로그인 화면으로 이동 (스택 초기화)
+    Navigator.of(context).pushNamedAndRemoveUntil(
+      AppRoutes.login,
+          (route) => false,
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final screenWidth = MediaQuery.of(context).size.width;
@@ -24,7 +43,8 @@ class _MenuScreenState extends State<MenuScreen> {
       child: SafeArea(
         child: Column(
           children: [
-            // 상단 헤더
+
+            // ===================== 상단 헤더 =====================
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
@@ -36,22 +56,20 @@ class _MenuScreenState extends State<MenuScreen> {
                   const Expanded(
                     child: Text(
                       '전체메뉴',
+                      textAlign: TextAlign.center,
                       style: TextStyle(
                         fontSize: 18,
                         fontWeight: FontWeight.w700,
-                        color: Colors.black87,
                       ),
-                      textAlign: TextAlign.center,
                     ),
                   ),
-                  // 설정 버튼 제거를 위해 빈 공간 추가 (중앙 정렬 유지)
                   const SizedBox(width: 48),
                 ],
               ),
             ),
-            // 사용자 정보 섹션
+
+            // ===================== 사용자 정보 + 로그아웃 =====================
             Container(
-              color: const Color(0xFFF8F9FB),
               padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 16),
               child: Row(
                 children: [
@@ -59,21 +77,18 @@ class _MenuScreenState extends State<MenuScreen> {
                     'assets/images/user.png',
                     width: 40,
                     height: 40,
-                    errorBuilder: (context, error, stackTrace) {
-                      return const Icon(
-                        Icons.person,
-                        color: Colors.black87,
-                        size: 40,
-                      );
-                    },
+                    errorBuilder: (_, __, ___) =>
+                    const Icon(Icons.person, size: 40),
                   ),
                   const SizedBox(width: 12),
+
+                  // 사용자 이름
                   Expanded(
                     child: InkWell(
                       onTap: () {
                         Navigator.of(context).push(
                           MaterialPageRoute(
-                            builder: (context) => const PersonalInfoScreen(),
+                            builder: (_) => const PersonalInfoScreen(),
                           ),
                         );
                       },
@@ -82,31 +97,39 @@ class _MenuScreenState extends State<MenuScreen> {
                         style: TextStyle(
                           fontSize: 20,
                           fontWeight: FontWeight.w600,
-                          color: Colors.black87,
                         ),
                       ),
                     ),
                   ),
-                  const Spacer(),
-                  const Text(
-                    '로그아웃',
-                    style: TextStyle(
-                      fontSize: 14,
-                      fontWeight: FontWeight.w500,
-                      color: Colors.black87,
+
+                  // 🔥 로그아웃 버튼
+                  InkWell(
+                    onTap: _logout,
+                    child: Row(
+                      children: [
+                        const Text(
+                          '로그아웃',
+                          style: TextStyle(
+                            fontSize: 14,
+                            fontWeight: FontWeight.w500,
+                          ),
+                        ),
+                        const SizedBox(width: 4),
+                        Icon(
+                          Icons.chevron_right,
+                          color: Colors.grey.shade400,
+                          size: 20,
+                        ),
+                      ],
                     ),
-                  ),
-                  const SizedBox(width: 4),
-                  Icon(
-                    Icons.chevron_right,
-                    color: Colors.grey.shade400,
-                    size: 20,
                   ),
                 ],
               ),
             ),
+
             const SizedBox(height: 10),
-            // 바로가기 바
+
+            // ===================== 바로가기 =====================
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
               child: Container(
@@ -117,6 +140,11 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
                 child: Row(
                   children: [
+                    _quickItem('assets/images/user-lock.png', '인증/보안'),
+                    _divider(),
+                    _quickItem('assets/images/bot-message-square.png', '챗봇'),
+                    _divider(),
+                    _quickItem(null, '전화상담', icon: Icons.phone),
                     Expanded(
                       child: _buildQuickAccessItem(
                         imagePath: 'assets/images/user-lock.png',
@@ -165,7 +193,31 @@ class _MenuScreenState extends State<MenuScreen> {
                 ),
               ),
             ),
+
             const SizedBox(height: 16),
+
+            // ===================== 메뉴 영역 =====================
+            Expanded(
+              child: SingleChildScrollView(
+                padding: const EdgeInsets.all(20),
+                child: Column(
+                  children: [
+                    _buildMockInvestmentEntry(context),
+                    const SizedBox(height: 12),
+                    _buildFundCard(),
+                    const SizedBox(height: 12),
+                    _buildSavingsCard(),
+                  ],
+                ),
+              ),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  // ===================== 공통 위젯 =====================
             // 검색 바
             Padding(
               padding: const EdgeInsets.symmetric(horizontal: 20),
@@ -284,17 +336,21 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget _buildSavingsCard() {
-    return Container(
-      padding: const EdgeInsets.all(20),
-      decoration: BoxDecoration(
-        color: Colors.white,
-        borderRadius: BorderRadius.circular(12),
-        border: Border.all(color: Colors.grey.shade200),
-      ),
+  Widget _divider() => Container(
+    width: 1,
+    height: 40,
+    color: Colors.grey.shade300,
+  );
+
+  Widget _quickItem(String? image, String label, {IconData? icon}) {
+    return Expanded(
       child: Column(
-        crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          image != null
+              ? Image.asset(image, width: 24, height: 24)
+              : Icon(icon, size: 24),
+          const SizedBox(height: 8),
+          Text(label, style: const TextStyle(fontSize: 12)),
           Row(
             children: [
               Icon(
@@ -326,7 +382,26 @@ class _MenuScreenState extends State<MenuScreen> {
     );
   }
 
-  Widget _buildCustomerSupportCard() {
+  Widget _buildFundCard() => _menuCard(
+    title: '펀드',
+    icon: Icons.trending_up,
+    color: Colors.purple,
+    items: ['펀드가입', '펀드관리'],
+  );
+
+  Widget _buildSavingsCard() => _menuCard(
+    title: '예적금',
+    icon: Icons.account_balance,
+    color: Colors.lightBlue,
+    items: ['예금 가입', '적금 가입'],
+  );
+
+  Widget _menuCard({
+    required String title,
+    required IconData icon,
+    required Color color,
+    required List<String> items,
+  }) {
     return Container(
       padding: const EdgeInsets.all(20),
       decoration: BoxDecoration(
@@ -337,6 +412,16 @@ class _MenuScreenState extends State<MenuScreen> {
       child: Column(
         crossAxisAlignment: CrossAxisAlignment.start,
         children: [
+          Row(children: [
+            Icon(icon, color: color, size: 20),
+            const SizedBox(width: 8),
+            Text(title, style: const TextStyle(fontSize: 16, fontWeight: FontWeight.w700)),
+          ]),
+          const SizedBox(height: 16),
+          for (final item in items)
+            Padding(
+              padding: const EdgeInsets.symmetric(vertical: 6),
+              child: Text(item),
           Row(
             children: [
               Icon(Icons.headset_mic, color: Colors.green.shade400, size: 20),
@@ -421,15 +506,24 @@ class _MenuScreenState extends State<MenuScreen> {
               fontWeight: FontWeight.w500,
               color: Colors.black87,
             ),
-          ),
         ],
       ),
     );
   }
 
+  // ===================== 모의투자 =====================
   Widget _buildMockInvestmentEntry(BuildContext context) {
     return GestureDetector(
       onTap: () async {
+        AppUtils.showLoading(context);
+        final hasAccount = await MockApi.checkHasAccount();
+        if (!context.mounted) return;
+        AppUtils.hideLoading(context);
+
+        Navigator.pushNamed(
+          context,
+          hasAccount ? AppRoutes.mockDashboard : AppRoutes.mockCreate,
+        );
         // 1. 계좌가 있는지 서버에 확인 (비동기 처리)
         bool hasAccount = await MockApi.checkHasAccount();
 
@@ -443,14 +537,23 @@ class _MenuScreenState extends State<MenuScreen> {
         }
       },
       child: Container(
-        margin: const EdgeInsets.symmetric(horizontal: 16, vertical: 8),
         padding: const EdgeInsets.all(20),
         decoration: BoxDecoration(
           color: AppColors.primaryColor.withOpacity(0.1),
           borderRadius: BorderRadius.circular(16),
-          border: Border.all(color: AppColors.primaryColor.withOpacity(0.3)),
         ),
         child: Row(
+          children: const [
+            Icon(Icons.analytics_outlined),
+            SizedBox(width: 16),
+            Expanded(child: Text('AI 모의투자 시작하기')),
+            Icon(Icons.arrow_forward_ios, size: 16),
+          ],
+        ),
+      ),
+    );
+  }
+}
           children: [
             const Icon(
               Icons.analytics_outlined,

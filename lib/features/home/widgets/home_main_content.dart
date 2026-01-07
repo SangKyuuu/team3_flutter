@@ -151,7 +151,7 @@ class LeftColumn extends StatelessWidget {
       children: [
         const HeroCarousel(),
         const SizedBox(height: 24),
-        const PortfolioStatusCard(),
+        const PortfolioStatusCard(custName: '',),
         const SizedBox(height: 20),
         const SearchBarCard(),
         const SizedBox(height: 20),

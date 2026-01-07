@@ -39,8 +39,8 @@ class _SplashScreenState extends State<SplashScreen> {
       if (!mounted) return;
       _goHome();
     } catch (e) {
-      // ❌ 토큰 만료 / 위조
-      await TokenStorage.clear();
+      //  토큰 만료 / 위조
+      await TokenStorage.clearToken();
       _goLogin();
     }
   }
@@ -48,8 +48,7 @@ class _SplashScreenState extends State<SplashScreen> {
   void _goLogin() {
     Navigator.pushReplacement(
       context,
-      //MaterialPageRoute(builder: (_) => const LoginScreen()),
-      MaterialPageRoute(builder: (_) => const HomeScreen()),
+      MaterialPageRoute(builder: (_) => const LoginScreen()),
     );
   }
 
