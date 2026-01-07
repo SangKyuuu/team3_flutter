@@ -120,6 +120,56 @@ Flutter를 활용한 크로스 플랫폼 모바일 앱으로,
 
 ---
 
+## 📂 프로젝트 구조 (Flutter Client)
+
+```text
+lib/
+└── features/
+    ├── splash/
+    │   └── splash_screen.dart                 # 스플래시 화면
+    ├── auth/                                  # 인증
+    │   ├── login_screen.dart                  # 로그인
+    │   └── signup_screen.dart                 # 회원가입
+    ├── home/                                  # 홈 & 메뉴
+    │   ├── home_screen.dart                   # 홈 화면
+    │   ├── menu_screen.dart                   # 전체 메뉴 (마이페이지 진입)
+    │   ├── fund_list_screen.dart              # 펀드 목록
+    │   ├── fund_detail_screen.dart            # 펀드 상세 (간략)
+    │   ├── fund_management_screen.dart        # 내 펀드 관리
+    │   ├── investment_screen.dart             # 투자 진행
+    │   ├── withdrawal_screen.dart             # 환매 / 철회
+    │   ├── customized_fund_search_screen.dart # 맞춤형 펀드 검색
+    │   ├── personal_info_screen.dart          # 개인정보 조회
+    │   ├── personal_info_edit_screen.dart     # 개인정보 수정
+    │   └── widgets/                           # 공통 위젯
+    ├── fund_detail/                           # 펀드 상세 (확장)
+    │   ├── fund_detail_screen.dart
+    │   └── pdf_viewer_screen.dart             # 투자설명서 / 약관 PDF 뷰어
+    ├── investment_propensity/                 # 투자 성향 조사
+    │   └── investment_propensity_screen.dart
+    ├── terms_agreement/                       # 약관 동의
+    │   └── terms_agreement_screen.dart
+    ├── subscription/                          # 펀드 가입
+    │   ├── fund_subscription_screen.dart
+    │   ├── widgets/
+    │   │   └── password_input_dialog.dart     # 비밀번호 입력 다이얼로그
+    │   └── services/
+    │       └── signature_service.dart         # 전자서명 로직
+    ├── cs/                                    # 고객센터
+    │   ├── cs_main_screen.dart
+    │   ├── cs_chatbot_screen.dart             # AI 챗봇
+    │   ├── cs_faq_list_screen.dart
+    │   ├── cs_notice_screen.dart
+    │   └── cs_one_on_one_inquiry_screen.dart  # 1:1 문의
+    └── mock_investment/                       # 모의 투자
+        └── screens/
+            ├── mock_dashboard_screen.dart     # 모의 투자 대시보드
+            ├── mock_ai_report_screen.dart     # AI 투자 리포트
+            ├── mock_diagnosis_result_screen.dart
+            └── mock_account_create_screen.dart
+
+---
+
 ## 🚀 실행 방법
 
 ### 1️⃣ 저장소 클론
