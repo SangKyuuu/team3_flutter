@@ -38,12 +38,6 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
     super.dispose();
   }
 
-  void _onWithdrawAllPressed() {
-    setState(() {
-      _amountController.text = _availableBalance;
-    });
-  }
-
   bool get _canProceed {
     final parsed = int.tryParse(_amountController.text);
     return parsed != null && parsed >= 100;
@@ -110,6 +104,9 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                     ),
                   ],
                 ),
+                    textAlign: TextAlign.center,
+                  ),
+                ],
               ),
             ),
             Padding(

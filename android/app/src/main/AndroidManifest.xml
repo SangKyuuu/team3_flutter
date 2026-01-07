@@ -3,6 +3,9 @@
 
     <uses-permission android:name="android.permission.INTERNET"/>
 
+    <!-- 네트워크에서 PDF 로드를 위한 인터넷 권한 -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    
     <application
         android:name="${applicationName}"
         android:label="team3"

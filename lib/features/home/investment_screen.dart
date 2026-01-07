@@ -43,12 +43,6 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
     super.dispose();
   }
 
-  void _onInvestAllPressed() {
-    setState(() {
-      _amountController.text = _availableBalance;
-    });
-  }
-
   bool get _canProceed {
     final amount = _amountController.text;
     if (amount.isEmpty) return false;
@@ -154,20 +148,6 @@ class _InvestmentScreenState extends State<InvestmentScreen> {
                       color: Colors.grey.shade600,
                     ),
                     textAlign: TextAlign.center,
-                  ),
-                  const SizedBox(height: 12),
-                  // 모두 투자 옵션
-                  InkWell(
-                    onTap: _onInvestAllPressed,
-                    child: Text(
-                      '$_availableBalance원 모두 투자',
-                      style: TextStyle(
-                        fontSize: 14,
-                        fontWeight: FontWeight.w500,
-                        color: AppColors.primaryColor,
-                      ),
-                      textAlign: TextAlign.center,
-                    ),
                   ),
                 ],
               ),
