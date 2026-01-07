@@ -20,8 +20,9 @@ class WithdrawalScreen extends StatefulWidget {
 
 class _WithdrawalScreenState extends State<WithdrawalScreen> {
   final TextEditingController _amountController = TextEditingController();
-  final String _availableBalance = '958';
   final FocusNode _focusNode = FocusNode();
+
+  final int _availableBalance = 958;
 
   @override
   void initState() {
@@ -40,13 +41,19 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
 
   bool get _canProceed {
     final parsed = int.tryParse(_amountController.text);
-    return parsed != null && parsed >= 100;
+    return parsed != null && parsed >= 100 && parsed <= _availableBalance;
+  }
+
+  void _onWithdrawAllPressed() {
+    setState(() {
+      _amountController.text = _availableBalance.toString();
+    });
   }
 
   @override
   Widget build(BuildContext context) {
-    final screenHeight = MediaQuery.of(context).size.height;
     final keyboardHeight = MediaQuery.of(context).viewInsets.bottom;
+    final screenHeight = MediaQuery.of(context).size.height;
 
     return Padding(
       padding: EdgeInsets.only(bottom: keyboardHeight),
@@ -58,6 +65,7 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
         ),
         child: Column(
           children: [
+            /* ===================== 본문 ===================== */
             Expanded(
               child: Padding(
                 padding: const EdgeInsets.all(16),
@@ -68,7 +76,10 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                       children: [
                         const Text(
                           '얼마를 출금할까요?',
-                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w700),
+                          style: TextStyle(
+                            fontSize: 20,
+                            fontWeight: FontWeight.w700,
+                          ),
                         ),
                         TextButton(
                           onPressed: () => Navigator.pop(context),
@@ -82,7 +93,10 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                       focusNode: _focusNode,
                       keyboardType: TextInputType.number,
                       textAlign: TextAlign.center,
-                      style: const TextStyle(fontSize: 32, fontWeight: FontWeight.w600),
+                      style: const TextStyle(
+                        fontSize: 32,
+                        fontWeight: FontWeight.w600,
+                      ),
                       decoration: const InputDecoration(
                         hintText: '금액 입력',
                         border: InputBorder.none,
@@ -93,22 +107,25 @@ class _WithdrawalScreenState extends State<WithdrawalScreen> {
                     Text(
                       '최소 100원부터 출금 할 수 있어요',
                       style: TextStyle(color: Colors.grey.shade600),
+                      textAlign: TextAlign.center,
                     ),
                     const SizedBox(height: 12),
                     InkWell(
                       onTap: _onWithdrawAllPressed,
                       child: Text(
                         '$_availableBalance원 모두 출금',
-                        style: TextStyle(color: AppColors.primaryColor),
+                        style: TextStyle(
+                          color: AppColors.primaryColor,
+                          fontWeight: FontWeight.w600,
+                        ),
                       ),
                     ),
                   ],
                 ),
-                    textAlign: TextAlign.center,
-                  ),
-                ],
               ),
             ),
+
+            /* ===================== 하단 버튼 ===================== */
             Padding(
               padding: const EdgeInsets.all(16),
               child: SizedBox(

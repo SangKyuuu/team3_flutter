@@ -48,7 +48,8 @@ class _SplashScreenState extends State<SplashScreen> {
   void _goLogin() {
     Navigator.pushReplacement(
       context,
-      MaterialPageRoute(builder: (_) => const LoginScreen()),
+      //MaterialPageRoute(builder: (_) => const LoginScreen()),
+       MaterialPageRoute(builder: (_) => const HomeScreen()),
     );
   }
 
