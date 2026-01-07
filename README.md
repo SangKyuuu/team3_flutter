@@ -169,9 +169,4 @@ lib/
 
 ---
 
-## 🚀 실행 방법
 
-### 1️⃣ 저장소 클론
-```bash
-git clone <repository-url>
-cd team3_flutter
